@@ -1,0 +1,131 @@
+{% extends 'rental/base.html' %}
+{% load static %}
+
+{% block title %}Đơn {{ order.order_code }} - BookXe{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="text-center mb-4">
+    <div class="bx-success-ring mx-auto mb-3"><i class="bi bi-check-lg fs-1"></i></div>
+    <h1 class="fw-extra bx-display-sm mb-2 text-success">Đặt cọc thành công!</h1>
+    <p class="text-muted mb-1">Mã đơn hàng của bạn: <strong class="text-dark">{{ order.order_code }}</strong></p>
+    <p class="text-muted small">Thông tin đơn hàng và mã QR đã được gửi tới email của bạn.</p>
+  </div>
+
+  <div class="row g-4 justify-content-center">
+    <!-- QR -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-lg rounded-4 text-center p-4">
+        <h5 class="fw-bold mb-3"><i class="bi bi-qr-code text-primary-blue me-2"></i>Mã QR nhận xe</h5>
+        {% if order.qr_code_image %}
+          <img src="{{ order.qr_code_image.url }}" alt="QR code" class="bx-qr-img img-fluid rounded-3 mb-3">
+          <a href="{{ order.qr_code_image.url }}" download class="btn btn-outline-dark btn-sm"><i class="bi bi-download me-1"></i>Tải mã QR</a>
+        {% else %}
+          <div class="alert alert-warning">Mã QR đang được tạo...</div>
+        {% endif %}
+        <hr>
+        <div class="small text-muted mb-1">Quét mã hoặc xuất trình khi nhận xe</div>
+        <div class="small">Ngân hàng: <strong>{{ bank_holder }}</strong> - {{ bank_name }} - <strong>{{ bank_account }}</strong></div>
+      </div>
+    </div>
+
+    <!-- Chi tiết đơn -->
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm rounded-4 mb-3">
+        <div class="card-header bg-white fw-bold border-0 pt-3 d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-receipt text-primary-blue me-2"></i>Chi tiết đơn thuê</span>
+          <span class="badge bg-warning text-dark">{{ order.get_status_display }}</span>
+        </div>
+        <div class="card-body p-4">
+          <div class="row g-3 mb-3">
+            <div class="col-sm-6"><div class="bx-spec-box"><span class="bx-spec-label">Cửa hàng</span><strong>{{ order.shop.shop_name }}</strong></div></div>
+            <div class="col-sm-6"><div class="bx-spec-box"><span class="bx-spec-label">Phương thức</span><strong>{{ order.get_payment_method_display }}</strong></div></div>
+            <div class="col-sm-6"><div class="bx-spec-box"><span class="bx-spec-label">SĐT liên hệ</span><strong>{{ order.receiver_phone }}</strong></div></div>
+            <div class="col-sm-6"><div class="bx-spec-box"><span class="bx-spec-label">Ngày đặt</span><strong>{{ order.created_at|date:"d/m/Y H:i" }}</strong></div></div>
+          </div>
+          <div class="bx-spec-box mb-3"><span class="bx-spec-label">Địa chỉ nhận xe</span><strong>{{ order.pickup_address }}</strong></div>
+          {% if order.receiver_name %}<div class="bx-spec-box mb-3"><span class="bx-spec-label">Người nhận xe</span><strong>{{ order.receiver_name }}</strong> ({{ order.receiver_phone }})</div>{% endif %}
+          {% if order.customer_note %}<div class="bx-spec-box mb-3"><span class="bx-spec-label">Ghi chú</span><strong>{{ order.customer_note }}</strong></div>{% endif %}
+
+          <!-- ========== TRẠNG THÁI ĐƠN ========== -->
+          {% if order.status == 'pending_deposit' %}
+            <div class="alert alert-warning border-0 rounded-4 mb-3">
+              <div class="fw-bold mb-1"><i class="bi bi-clock-history me-1"></i>Chờ bạn chuyển khoản đặt cọc</div>
+              <div class="small mb-3">Vui lòng quét mã QR ở bên trái để chuyển khoản, sau đó bấm xác nhận để cửa hàng chuẩn bị xe.</div>
+              <button type="button" class="btn btn-success btn-lg fw-bold w-100" id="btnConfirmDeposit" data-order-id="{{ order.id }}">
+                <i class="bi bi-check2-circle me-2"></i>Tôi đã chuyển khoản đặt cọc (Xác nhận OK)
+              </button>
+              <div id="confirmDepositMsg" class="small mt-2"></div>
+            </div>
+          {% elif order.status == 'confirmed' %}
+            <div class="alert alert-success border-0 rounded-4 mb-3">
+              <div class="fw-bold fs-6 mb-2"><i class="bi bi-check-circle-fill me-1"></i>Trạng thái: Đã xác nhận chuyển khoản OK — Đang giao xe</div>
+              <div class="small mb-1"><i class="bi bi-clock me-1"></i><strong>Thời gian giao xe:</strong> {{ order.delivery_time_note }}</div>
+              <div class="small"><i class="bi bi-geo-alt me-1"></i><strong>Địa chỉ nhận xe OK:</strong> {{ order.pickup_address }} — Người nhận: {{ order.receiver_name }} ({{ order.receiver_phone }})</div>
+            </div>
+          {% elif order.status == 'completed' %}
+            <div class="alert alert-success border-0 rounded-4 mb-3" style="background:#146c43;color:#fff">
+              <div class="fw-bold fs-6 mb-2"><i class="bi bi-check2-circle me-1"></i>Xe đã được giao (Hoàn thành đơn)</div>
+              <div class="small mb-1"><i class="bi bi-clock me-1"></i>Thời gian giao: {{ order.delivery_time_note }}</div>
+              <div class="small"><i class="bi bi-geo-alt me-1"></i>Địa chỉ đã giao: {{ order.pickup_address }} — Người nhận: {{ order.receiver_name }} ({{ order.receiver_phone }})</div>
+            </div>
+          {% endif %}
+
+          <h6 class="fw-bold mb-2">Các xe trong đơn</h6>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="bg-light-2"><tr><th>Xe</th><th>Thời gian</th><th>Đơn giá</th><th>Thành tiền</th></tr></thead>
+              <tbody>
+                {% for item in order.items.all %}
+                  <tr>
+                    <td><strong>{{ item.vehicle_name }}</strong><br><small class="text-muted">{{ item.license_plate }}</small>
+                      {% if item.was_bargain_price %}<br><span class="badge bg-success-soft text-success">Giá thương lượng</span>{% endif %}</td>
+                    <td class="small">{{ item.start_date|date:"d/m/Y" }} → {{ item.end_date|date:"d/m/Y" }}<br>({{ item.total_days }} ngày)</td>
+                    <td class="small">{{ item.price_per_day|floatformat:0 }} đ/ngày</td>
+                    <td class="fw-bold">{{ item.line_total|floatformat:0 }} đ</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <hr>
+          <div class="d-flex justify-content-between mb-2"><span class="text-muted">Tổng tiền thuê</span><strong>{{ order.total_rental_amount|floatformat:0 }} đ</strong></div>
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="fw-bold">Số tiền đã đặt cọc</span>
+            <span class="fw-extra fs-3 text-primary-blue">{{ order.deposit_paid_amount|floatformat:0 }} đ</span>
+          </div>
+        </div>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{% url 'home' %}" class="btn btn-outline-dark"><i class="bi bi-house me-1"></i>Về trang chủ</a>
+        <a href="{% url 'dashboard' %}" class="btn btn-primary-blue"><i class="bi bi-speedometer2 me-1"></i>Xem đơn của tôi</a>
+        <a href="/contact/?shop={{ order.shop_id }}&amp;order={{ order.order_code }}" class="btn btn-outline-coral"><i class="bi bi-exclamation-triangle me-1"></i>Báo sự cố xe hư</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const btnConfirm = document.getElementById('btnConfirmDeposit');
+  if (btnConfirm) {
+    btnConfirm.addEventListener('click', async function () {
+      btnConfirm.disabled = true;
+      const msg = document.getElementById('confirmDepositMsg');
+      try {
+        await apiFetch('/api/orders/' + btnConfirm.dataset.orderId + '/confirm-deposit/', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({delivery_time_note: 'Giao xe trong vòng 1 - 2 giờ tới'})
+        });
+        msg.innerHTML = '<span class="text-success fw-semibold">Xác nhận thành công! Cửa hàng đang giao xe cho bạn.</span>';
+        setTimeout(function () { window.location.reload(); }, 900);
+      } catch (e) {
+        msg.innerHTML = '<span class="text-coral">' + escapeHtml(e.message) + '</span>';
+        btnConfirm.disabled = false;
+      }
+    });
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,304 @@
+{% extends 'rental/base.html' %}
+{% load static %}
+
+{% block title %}{{ shop.shop_name }} - BookXe{% endblock %}
+
+{% block content %}
+<!-- ========== SHOP HEADER ========== -->
+<section class="bx-shop-hero">
+  <div class="container py-4">
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb small mb-3">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-muted">Trang chủ</a></li>
+        <li class="breadcrumb-item active">{{ shop.shop_name }}</li>
+      </ol>
+    </nav>
+    <div class="row align-items-center g-4">
+      <div class="col-md-3">
+        {% if shop.banner_image %}
+          <img src="{{ shop.banner_image.url }}" class="img-fluid rounded-4 shadow-sm" alt="banner">
+        {% else %}
+          <div class="bx-shop-logo-placeholder rounded-4 d-flex align-items-center justify-content-center">
+            <i class="bi bi-shop fs-1"></i>
+          </div>
+        {% endif %}
+      </div>
+      <div class="col-md-6">
+        <h1 class="fw-extra bx-display-sm mb-2">{{ shop.shop_name }}</h1>
+        <p class="mb-2"><span class="badge bg-success-soft text-success"><i class="bi bi-patch-check-fill me-1"></i>Cửa hàng đã xác thực</span></p>
+        <p class="text-muted mb-2"><i class="bi bi-geo-alt-fill text-primary-blue me-2"></i>{{ shop.exact_address }}, {{ shop.city_district }}</p>
+        <p class="text-muted mb-2"><i class="bi bi-telephone me-2"></i>{{ shop.hotline|default:'Liên hệ qua BookXe' }}</p>
+        {% if shop.description %}<p class="text-muted small mb-0">{{ shop.description }}</p>{% endif %}
+      </div>
+      <div class="col-md-3 text-md-end">
+        <button class="btn btn-primary-blue" id="callShopBtn"><i class="bi bi-telephone-outbound me-1"></i>Liên hệ cửa hàng</button>
+        <a href="/contact/?shop={{ shop.id }}" class="btn btn-outline-coral mt-2 w-100"><i class="bi bi-exclamation-triangle me-1"></i>Báo sự cố xe hư</a>
+        {% if user.is_authenticated and user.id == shop.owner_id %}
+          <button class="btn btn-outline-dark mt-2 w-100" id="toggleShopForm"><i class="bi bi-pencil me-1"></i>Chỉnh sửa cửa hàng</button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+{% if user.is_authenticated and user.id == shop.owner_id %}
+<div class="container mt-4">
+  <div class="card border-0 shadow-sm rounded-4 d-none" id="shopFormCard">
+    <div class="card-header bg-white fw-bold border-0 pt-3"><i class="bi bi-shop text-primary-blue me-2"></i>Tạo / Cập nhật Thông tin Cửa hàng</div>
+    <div class="card-body p-4">
+      <form id="shopForm" enctype="multipart/form-data">
+        <div class="row g-3">
+          <div class="col-md-4"><label class="form-label small fw-semibold">Tên cửa hàng *</label><input class="form-control" name="shop_name" id="sName" value="{{ shop.shop_name }}" required></div>
+          <div class="col-md-3"><label class="form-label small fw-semibold">Khu vực / Thành phố *</label><input class="form-control" name="city_district" id="sCity" value="{{ shop.city_district }}" required placeholder="Đà Nẵng, TP.HCM..."></div>
+          <div class="col-md-5"><label class="form-label small fw-semibold">Địa chỉ chi tiết *</label><input class="form-control" name="exact_address" id="sAddress" value="{{ shop.exact_address }}" required></div>
+          <div class="col-md-3"><label class="form-label small fw-semibold">Điện thoại / Hotline</label><input class="form-control" name="hotline" id="sHotline" value="{{ shop.hotline }}"></div>
+          <div class="col-md-5"><label class="form-label small fw-semibold">Mô tả giới thiệu</label><textarea class="form-control" name="description" id="sDescription" rows="2">{{ shop.description }}</textarea></div>
+          <div class="col-md-4"><label class="form-label small fw-semibold">Ảnh bìa cửa hàng</label><input type="file" class="form-control" name="banner_image" accept="image/*"></div>
+          <div class="col-12"><button type="submit" class="btn btn-primary-blue"><i class="bi bi-save me-1"></i>Lưu thông tin cửa hàng</button> <span id="shopFormMsg" class="small ms-2"></span></div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="container py-4">
+  <div class="row g-4">
+    <!-- ========== BỘ LỌC + DANH SÁCH XE ========== -->
+    <div class="col-lg-9">
+      <div class="bx-filter-bar bg-light-2 p-3 rounded-4 mb-4 border">
+        <div class="row g-3 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold mb-1"><i class="bi bi-search me-1"></i>Tìm xe</label>
+            <input type="text" id="vehicleSearch" class="form-control form-control-sm" placeholder="Tên xe, hãng xe, biển số...">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold mb-1">Loại xe</label>
+            <select id="vehicleType" class="form-select form-select-sm">
+              <option value="">Tất cả</option>
+              <option value="motorbike">Xe máy</option>
+              <option value="car">Ô tô</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold mb-1">Sắp xếp</label>
+            <select id="vehicleSort" class="form-select form-select-sm">
+              <option value="newest">Mới nhất</option>
+              <option value="price_asc">Giá tăng dần</option>
+              <option value="price_desc">Giá giảm dần</option>
+              <option value="rating">Đánh giá cao nhất</option>
+            </select>
+          </div>
+          <div class="col-md-2 d-grid">
+            <button class="btn btn-dark btn-sm" id="resetFilterBtn"><i class="bi bi-arrow-counterclockwise me-1"></i>Reset</button>
+          </div>
+        </div>
+        <div class="row g-3 align-items-center mt-1">
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold mb-1">Giá tối thiểu: <span id="minPriceLabel" class="text-primary-blue">0 đ</span></label>
+            <input type="range" class="form-range" id="minPriceSlider" min="0" max="3000000" step="50000" value="0">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold mb-1">Giá tối đa: <span id="maxPriceLabel" class="text-primary-blue">3.000.000 đ</span></label>
+            <input type="range" class="form-range" id="maxPriceSlider" min="0" max="3000000" step="50000" value="3000000">
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0">Danh sách xe <span class="badge bg-silver-soft text-silver-dark" id="vehicleCount">...</span></h5>
+        <span class="small text-muted" id="loadingText">Đang tải...</span>
+      </div>
+
+      <div id="vehicleGrid" class="row g-4"></div>
+      <div id="vehicleEmpty" class="alert alert-info d-none">Không tìm thấy xe nào khớp với bộ lọc.</div>
+    </div>
+
+    <!-- ========== SIDEBAR: BLOG ƯU ĐÃI CỦA SHOP ========== -->
+    <div class="col-lg-3">
+      <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+        <div class="card-header bg-white fw-bold border-0 pt-3"><i class="bi bi-newspaper text-amber me-1"></i> Blog ưu đãi của cửa hàng</div>
+        <div class="list-group list-group-flush">
+          {% for blog in blogs %}
+            <a href="{% url 'blog_detail' blog.slug %}" class="list-group-item list-group-item-action small">
+              {% if blog.promo_badge %}<span class="badge bg-amber-soft text-amber mb-1">{{ blog.promo_badge }}</span><br>{% endif %}
+              <span class="fw-semibold text-dark">{{ blog.title }}</span>
+            </a>
+          {% empty %}
+            <div class="list-group-item small text-muted">Chưa có bài viết nào.</div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="card border-0 shadow-sm rounded-4 bg-dark text-white p-4">
+        <h6 class="fw-bold"><i class="bi bi-lightbulb text-warning me-1"></i>Mẹo tiết kiệm</h6>
+        <p class="small text-white-50 mb-0">Sinh viên, du khách mùa thấp điểm hoặc thuê dài ngày có thể bấm <strong class="text-white">Make an Offer</strong> để gửi giá đề xuất. Chủ cửa hàng sẽ phản hồi ngay trên web!</p>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const SHOP_ID = {{ shop.id }};
+  const vehicleGrid = document.getElementById('vehicleGrid');
+  const vehicleEmpty = document.getElementById('vehicleEmpty');
+  const loadingText = document.getElementById('loadingText');
+  const vehicleCount = document.getElementById('vehicleCount');
+
+  const minSlider = document.getElementById('minPriceSlider');
+  const maxSlider = document.getElementById('maxPriceSlider');
+  const minLabel = document.getElementById('minPriceLabel');
+  const maxLabel = document.getElementById('maxPriceLabel');
+
+  let debounceTimer = null;
+
+  function statusBadge(status) {
+    if (status === 'available') return '<span class="badge bg-success-soft text-success"><i class="bi bi-circle-fill me-1" style="font-size:.5rem"></i>Sẵn sàng</span>';
+    if (status === 'rented') return '<span class="badge bg-coral-soft text-coral"><i class="bi bi-circle-fill me-1" style="font-size:.5rem"></i>Đang thuê</span>';
+    return '<span class="badge bg-silver-soft text-silver-dark"><i class="bi bi-tools me-1"></i>Bảo dưỡng</span>';
+  }
+
+  function renderVehicles(vehicles) {
+    vehicleGrid.innerHTML = '';
+    vehicleCount.textContent = vehicles.length;
+    loadingText.textContent = '';
+    if (!vehicles.length) { vehicleEmpty.classList.remove('d-none'); return; }
+    vehicleEmpty.classList.add('d-none');
+
+    vehicles.forEach(function (v) {
+      const img = v.primary_image_url
+        ? '<img src="' + v.primary_image_url + '" class="card-img-top bx-vehicle-img" alt="' + escapeHtml(v.name) + '">'
+        : '<div class="bx-no-image d-flex align-items-center justify-content-center"><i class="bi bi-car-front fs-1"></i></div>';
+      const col = document.createElement('div');
+      col.className = 'col-6 col-lg-4';
+      col.innerHTML =
+        '<div class="card bx-vehicle-card h-100 border-0 shadow-sm overflow-hidden">' +
+          '<a href="/vehicles/' + v.id + '/">' + img + '</a>' +
+          '<div class="card-body p-3 d-flex flex-column">' +
+            '<div class="d-flex justify-content-between align-items-center mb-2">' +
+              '<span class="badge bg-silver-soft text-silver-dark">' + escapeHtml(v.vehicle_type_display) + '</span>' +
+              statusBadge(v.availability_status) +
+            '</div>' +
+            '<h6 class="fw-bold mb-1 text-truncate">' + escapeHtml(v.brand) + ' ' + escapeHtml(v.name) + '</h6>' +
+            '<div class="small text-muted mb-2"><i class="bi bi-hash me-1"></i>' + escapeHtml(v.license_plate) +
+              ' <span class="mx-1">•</span> <i class="bi bi-calendar3 me-1"></i>' + v.model_year + '</div>' +
+            '<div class="d-flex align-items-center mb-2">' +
+              '<span class="text-warning small"><i class="bi bi-star-fill"></i> ' + (v.average_rating || 0).toFixed(1) + '</span>' +
+              '<span class="text-muted small ms-1">(' + v.review_count + ' đánh giá)</span>' +
+            '</div>' +
+            '<div class="text-primary-blue fw-extra fs-4 mb-1">' + money(v.base_price_per_day) + '<small class="text-muted fw-normal fs-6"> /ngày</small></div>' +
+            '<div class="small text-muted mb-3 bx-spec-line">' + escapeHtml(v.specs_summary) + '</div>' +
+            '<div class="d-grid gap-2 mt-auto">' +
+              '<a href="/vehicles/' + v.id + '/" class="btn btn-dark btn-sm"><i class="bi bi-eye me-1"></i>Xem chi tiết & Thương lượng giá</a>' +
+              '<button class="btn btn-primary-blue btn-sm btn-quick-cart" data-id="' + v.id + '"><i class="bi bi-cart-plus me-1"></i>Đặt cọc thuê ngay</button>' +
+              (v.allow_bargain ? '<button class="btn btn-outline-primary btn-sm btn-offer" data-id="' + v.id + '" data-name="' + escapeHtml(v.name) + '"><i class="bi bi-chat-dots me-1"></i>Make an Offer</button>' : '') +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      vehicleGrid.appendChild(col);
+    });
+
+    document.querySelectorAll('.btn-offer').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        window.location.href = '/vehicles/' + btn.dataset.id + '/#bargain';
+      });
+    });
+
+    document.querySelectorAll('.btn-quick-cart').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        const start = new Date(); start.setDate(start.getDate() + 1);
+        const end = new Date(); end.setDate(end.getDate() + 4);
+        const fmt = function (d) { return d.toISOString().slice(0, 10); };
+        btn.disabled = true;
+        try {
+          await apiFetch('{% url "api-cart-add" %}', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({vehicle_id: parseInt(btn.dataset.id, 10), start_date: fmt(start), end_date: fmt(end)})
+          });
+          btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Đã thêm vào giỏ';
+          if (document.getElementById('cartBadge')) {
+            const b = document.getElementById('cartBadge');
+            b.textContent = parseInt(b.textContent || '0', 10) + 1;
+          }
+          const a = document.createElement('a');
+          a.href = '{% url "cart" %}';
+          a.className = 'btn btn-outline-dark btn-sm w-100 mt-1';
+          a.textContent = 'Đi tới Giỏ / Checkout →';
+          btn.after(a);
+        } catch (e) { alert(e.message); btn.disabled = false; }
+      });
+    });
+  }
+
+  async function loadVehicles() {
+    loadingText.textContent = 'Đang tải...';
+    let min = parseInt(minSlider.value, 10);
+    let max = parseInt(maxSlider.value, 10);
+    if (min > max) { const t = min; min = max; max = t; }
+    const params = new URLSearchParams({
+      search: document.getElementById('vehicleSearch').value.trim(),
+      vehicle_type: document.getElementById('vehicleType').value,
+      min_price: min,
+      max_price: max,
+      sort: document.getElementById('vehicleSort').value,
+    });
+    try {
+      const data = await apiFetch('/api/shops/' + SHOP_ID + '/vehicles/?' + params.toString());
+      renderVehicles(data.results || data);
+    } catch (e) {
+      loadingText.textContent = 'Lỗi tải dữ liệu';
+      console.error(e);
+    }
+  }
+
+  function scheduleLoad() {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(loadVehicles, 250);
+  }
+
+  document.getElementById('vehicleSearch').addEventListener('input', scheduleLoad);
+  document.getElementById('vehicleType').addEventListener('change', loadVehicles);
+  document.getElementById('vehicleSort').addEventListener('change', loadVehicles);
+  minSlider.addEventListener('input', function () {
+    minLabel.textContent = money(minSlider.value);
+    scheduleLoad();
+  });
+  maxSlider.addEventListener('input', function () {
+    maxLabel.textContent = money(maxSlider.value);
+    scheduleLoad();
+  });
+  document.getElementById('resetFilterBtn').addEventListener('click', function () {
+    document.getElementById('vehicleSearch').value = '';
+    document.getElementById('vehicleType').value = '';
+    document.getElementById('vehicleSort').value = 'newest';
+    minSlider.value = 0; maxSlider.value = 3000000;
+    minLabel.textContent = '0 đ'; maxLabel.textContent = money(3000000);
+    loadVehicles();
+  });
+
+  document.getElementById('callShopBtn').addEventListener('click', function () {
+    alert('Hotline cửa hàng: {{ shop.hotline|default:"1900 1234" }}');
+  });
+
+  const shopForm = document.getElementById('shopForm');
+  if (shopForm) {
+    document.getElementById('toggleShopForm').addEventListener('click', function () {
+      document.getElementById('shopFormCard').classList.toggle('d-none');
+    });
+    shopForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const msg = document.getElementById('shopFormMsg');
+      try {
+        await apiFetch('{% url "api-shop-mine" %}', {method: 'POST', body: new FormData(shopForm)});
+        msg.innerHTML = '<span class="text-success fw-semibold">Đã lưu! Đang tải lại...</span>';
+        setTimeout(function () { window.location.reload(); }, 800);
+      } catch (err) {
+        msg.innerHTML = '<span class="text-coral">' + escapeHtml(err.message) + '</span>';
+      }
+    });
+  }
+
+  loadVehicles();
+</script>
+{% endblock %}

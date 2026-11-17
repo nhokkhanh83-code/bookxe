@@ -1,0 +1,78 @@
+{% extends 'rental/base.html' %}
+{% load static %}
+
+{% block title %}Hồ sơ cá nhân - BookXe{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="mb-4">
+    <h1 class="fw-extra bx-display-sm mb-1"><i class="bi bi-person-badge text-primary-blue me-2"></i>Hồ sơ cá nhân (Profile)</h1>
+    <p class="text-muted mb-0">Xem và cập nhật đầy đủ thông tin tài khoản của bạn.</p>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white fw-bold border-0 pt-3">Thông tin cá nhân</div>
+        <div class="card-body p-4">
+          <form method="post" enctype="multipart/form-data" id="profileForm">
+            {% csrf_token %}
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold">Ảnh đại diện</label>
+                <div class="d-flex align-items-center gap-3 mb-2">
+                  {% if profile_user.avatar %}
+                    <img src="{{ profile_user.avatar.url }}" class="rounded-circle" style="width:72px;height:72px;object-fit:cover" alt="avatar">
+                  {% else %}
+                    <div class="rounded-circle bg-light-2 d-flex align-items-center justify-content-center" style="width:72px;height:72px"><i class="bi bi-person fs-2 text-muted"></i></div>
+                  {% endif %}
+                  <input type="file" class="form-control" name="avatar" accept="image/*">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label small fw-semibold">Tên đăng nhập</label>
+                <input class="form-control" value="{{ profile_user.username }}" disabled>
+              </div>
+              <div class="col-md-6"><label class="form-label small fw-semibold">Họ</label><input class="form-control" name="first_name" value="{{ profile_user.first_name }}"></div>
+              <div class="col-md-6"><label class="form-label small fw-semibold">Tên</label><input class="form-control" name="last_name" value="{{ profile_user.last_name }}"></div>
+              <div class="col-md-6"><label class="form-label small fw-semibold">Số điện thoại</label><input class="form-control" name="phone" value="{{ profile_user.phone }}"></div>
+              <div class="col-md-6"><label class="form-label small fw-semibold">Email</label><input type="email" class="form-control" name="email" value="{{ profile_user.email }}"></div>
+              <div class="col-12"><label class="form-label small fw-semibold">Địa chỉ cá nhân / Địa chỉ nhận xe</label><textarea class="form-control" name="address" rows="2">{{ profile_user.address }}</textarea></div>
+              <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="is_student" id="isStudent" {% if profile_user.is_student %}checked{% endif %}><label class="form-check-label small" for="isStudent">Học sinh / Sinh viên (đã xác thực)</label></div></div>
+            </div>
+            <hr class="my-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-key me-1"></i>Đổi mật khẩu (để trống nếu không đổi)</h6>
+            <div class="row g-3">
+              <div class="col-md-6"><label class="form-label small fw-semibold">Mật khẩu mới</label><div class="input-group"><input type="password" class="form-control" name="new_password" id="newPassword"><button class="btn btn-outline-secondary" type="button" id="togglePassword"><i class="bi bi-eye"></i></button></div></div>
+              <div class="col-md-6"><label class="form-label small fw-semibold">Xác nhận mật khẩu mới</label><input type="password" class="form-control" name="confirm_password" id="confirmPassword"></div>
+            </div>
+            <div class="mt-4"><button type="submit" class="btn btn-primary-blue"><i class="bi bi-save me-1"></i>Update Profile</button></div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm rounded-4 p-4">
+        <h6 class="fw-bold"><i class="bi bi-info-circle text-primary-blue me-1"></i>Thông tin tài khoản</h6>
+        <div class="small text-muted mb-1">Quyền: <strong>{{ profile_user.get_role_display }}</strong></div>
+        <div class="small text-muted mb-1">Ngày tham gia: <strong>{{ profile_user.date_joined|date:"d/m/Y" }}</strong></div>
+        <div class="small text-muted">Đăng nhập gần nhất: <strong>{{ profile_user.last_login|date:"d/m/Y H:i"|default:"—" }}</strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.getElementById('togglePassword').addEventListener('click', function () {
+    const a = document.getElementById('newPassword');
+    const b = document.getElementById('confirmPassword');
+    const show = a.type === 'password';
+    a.type = show ? 'text' : 'password';
+    b.type = show ? 'text' : 'password';
+    this.innerHTML = show ? '<i class="bi bi-eye-slash"></i>' : '<i class="bi bi-eye"></i>';
+  });
+</script>
+{% endblock %}

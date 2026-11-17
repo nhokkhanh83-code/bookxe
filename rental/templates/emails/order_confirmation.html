@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Xác nhận đặt cọc BookXe</title>
+</head>
+<body style="margin:0;padding:0;background:#F1F5F9;font-family:Arial,Helvetica,sans-serif;color:#0F172A;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#F1F5F9;padding:32px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border-radius:16px;overflow:hidden;box-shadow:0 8px 30px rgba(15,23,42,.08);">
+        <!-- Header đen -->
+        <tr><td style="background:#0F172A;padding:28px 32px;">
+          <h1 style="margin:0;color:#FFFFFF;font-size:26px;">Book<span style="color:#2563EB;">Xe</span></h1>
+          <p style="margin:6px 0 0;color:#CBD5E1;font-size:13px;">Xác nhận đặt cọc xe thành công</p>
+        </td></tr>
+
+        <!-- Body -->
+        <tr><td style="padding:32px;">
+          <h2 style="margin:0 0 12px;font-size:20px;">Xin chào {{ user.get_full_name|default:user.username }},</h2>
+          <p style="margin:0 0 20px;color:#64748B;font-size:14px;line-height:1.6;">
+            Cảm ơn bạn đã đặt cọc xe trên BookXe. Dưới đây là thông tin chi tiết đơn hàng của bạn.
+            Vui lòng <strong> xuất trình mã QR</strong> hoặc mã đơn khi nhận xe.
+          </p>
+
+          <!-- Ma don -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#F1F5F9;border-left:4px solid #2563EB;border-radius:8px;margin-bottom:24px;">
+            <tr><td style="padding:16px 20px;">
+              <div style="color:#64748B;font-size:12px;">MÃ ĐƠN HÀNG</div>
+              <div style="font-size:22px;font-weight:bold;color:#0F172A;letter-spacing:1px;">{{ order.order_code }}</div>
+              <div style="margin-top:6px;">
+                <span style="display:inline-block;background:#D1FAE5;color:#047857;font-size:12px;padding:4px 10px;border-radius:20px;">{{ order.get_status_display }}</span>
+              </div>
+            </td></tr>
+          </table>
+
+          <!-- Thong tin -->
+          <h3 style="font-size:15px;margin:0 0 12px;border-bottom:1px solid #E2E8F0;padding-bottom:8px;">Thông tin đơn thuê</h3>
+          <table width="100%" cellpadding="6" cellspacing="0" style="font-size:14px;">
+            <tr><td style="color:#64748B;width:40%;">Cửa hàng</td><td style="font-weight:bold;">{{ order.shop.shop_name }}</td></tr>
+            <tr><td style="color:#64748B;">Địa chỉ nhận xe</td><td>{{ order.pickup_address }}</td></tr>
+            <tr><td style="color:#64748B;">Số điện thoại liên hệ</td><td>{{ order.receiver_phone }}</td></tr>
+            <tr><td style="color:#64748B;">Phương thức thanh toán</td><td>{{ order.get_payment_method_display }}</td></tr>
+            <tr><td style="color:#64748B;">Ngày đặt</td><td>{{ order.created_at|date:"d/m/Y H:i" }}</td></tr>
+            {% if order.customer_note %}<tr><td style="color:#64748B;">Ghi chú</td><td>{{ order.customer_note }}</td></tr>{% endif %}
+          </table>
+
+          <!-- Cac xe -->
+          <h3 style="font-size:15px;margin:24px 0 12px;border-bottom:1px solid #E2E8F0;padding-bottom:8px;">Các xe đã đặt</h3>
+          <table width="100%" cellpadding="8" cellspacing="0" style="font-size:13px;border-collapse:collapse;">
+            <tr style="background:#0F172A;color:#FFFFFF;">
+              <th align="left">Xe</th><th align="left">Thời gian</th><th align="right">Thành tiền</th>
+            </tr>
+            {% for item in order.items.all %}
+            <tr style="border-bottom:1px solid #E2E8F0;">
+              <td><strong>{{ item.vehicle_name }}</strong><br><span style="color:#64748B;font-size:12px;">{{ item.license_plate }}</span>
+                {% if item.was_bargain_price %}<br><span style="color:#047857;font-size:11px;">Giá đã thương lượng</span>{% endif %}</td>
+              <td>{{ item.start_date|date:"d/m/Y" }} → {{ item.end_date|date:"d/m/Y" }}<br><span style="color:#64748B;">{{ item.total_days }} ngày × {{ item.price_per_day|floatformat:0 }}đ</span></td>
+              <td align="right" style="font-weight:bold;">{{ item.line_total|floatformat:0 }} đ</td>
+            </tr>
+            {% endfor %}
+          </table>
+
+          <!-- Tong tien -->
+          <table width="100%" cellpadding="6" cellspacing="0" style="margin-top:16px;font-size:14px;">
+            <tr><td style="color:#64748B;">Tổng tiền thuê</td><td align="right">{{ order.total_rental_amount|floatformat:0 }} đ</td></tr>
+            <tr><td style="font-weight:bold;font-size:16px;">Số tiền đã đặt cọc</td>
+                <td align="right" style="font-weight:bold;font-size:20px;color:#2563EB;">{{ order.deposit_paid_amount|floatformat:0 }} đ</td></tr>
+          </table>
+
+          <!-- QR -->
+          <div style="margin-top:28px;text-align:center;background:#F8FAFC;border:1px dashed #CBD5E1;border-radius:12px;padding:20px;">
+            <h3 style="margin:0 0 12px;font-size:15px;">Mã QR đặt cọc / nhận xe</h3>
+            <img src="cid:booking_qr" alt="QR code" style="width:200px;height:200px;">
+            <p style="color:#64748B;font-size:12px;margin:12px 0 0;">Quét mã hoặc xuất trình khi nhận xe. Mã QR cũng được đính kèm trong email này.</p>
+          </div>
+
+          <!-- Chuyen khoan -->
+          <div style="margin-top:20px;background:#FFFBEB;border-left:4px solid #F59E0B;padding:14px 18px;border-radius:8px;font-size:13px;">
+            <strong>Thông tin chuyển khoản đặt cọc:</strong><br>
+            Ngân hàng: {{ bank_name }}<br>
+            Số tài khoản: <strong>{{ bank_account }}</strong><br>
+            Chủ tài khoản: <strong>{{ bank_holder }}</strong><br>
+            Nội dung: <strong>{{ order.order_code }}</strong>
+          </div>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="background:#0F172A;padding:20px 32px;text-align:center;">
+          <p style="margin:0;color:#94A3B8;font-size:12px;">© 2026 BookXe Rental Marketplace. Email này được gửi tự động, vui lòng không trả lời.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>

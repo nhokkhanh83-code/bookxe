@@ -1,0 +1,200 @@
+/* ==========================================================================
+   BOOKXE DESIGN SYSTEM
+   Bảng màu bắt buộc theo tỷ lệ:
+   - Trắng   #FFFFFF ................ 35%  (nền, thẻ xe, vùng đọc blog)
+   - Đen     #0F172A ................ 16%  (navbar, footer, tiêu đề, CTA)
+   - Xám/Bạc #64748B/#CBD5E1/#F1F5F9  14%  (viền, bộ lọc, badge thông số)
+   - Nhấn: Xanh dương #2563EB ~10% | Xanh ngọc #10B981 ~9%
+           Vàng hổ phạch #F59E0B ~8% | Đỏ coral #EF4444 ~8%
+   ========================================================================== */
+:root {
+  /* --- Trắng (35%) --- */
+  --bx-white: #FFFFFF;
+
+  /* --- Đen (16%) --- */
+  --bx-ink: #0F172A;
+  --bx-black: #000000;
+
+  /* --- Xám & Bạc (14%) --- */
+  --bx-silver-600: #64748B;
+  --bx-silver-300: #CBD5E1;
+  --bx-silver-100: #F1F5F9;
+
+  /* --- Màu nhấn (tổng 35%) --- */
+  --bx-blue: #2563EB;      /* ~10% */
+  --bx-green: #10B981;     /* ~9%  */
+  --bx-amber: #F59E0B;     /* ~8%  */
+  --bx-coral: #EF4444;     /* ~8%  */
+
+  /* --- Biến dẫn xuất --- */
+  --bx-blue-soft: #DBEAFE;
+  --bx-green-soft: #D1FAE5;
+  --bx-amber-soft: #FEF3C7;
+  --bx-coral-soft: #FEE2E2;
+  --bx-radius: 16px;
+  --bx-shadow: 0 8px 30px rgba(15, 23, 42, .08);
+}
+
+/* ---------- Base ---------- */
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  background: var(--bx-white);
+  color: var(--bx-ink);
+  font-size: 15px;
+}
+h1, h2, h3, h4, h5, h6 { color: var(--bx-ink); }
+.fw-extra { font-weight: 800 !important; }
+.text-primary-blue { color: var(--bx-blue) !important; }
+.bg-primary-blue { background-color: var(--bx-blue) !important; color: #fff !important; }
+.bg-primary-blue-soft { background-color: var(--bx-blue-soft) !important; }
+.bg-silver-soft { background-color: var(--bx-silver-100) !important; }
+.text-silver-dark { color: var(--bx-silver-600) !important; }
+.bg-success-soft { background-color: var(--bx-green-soft) !important; }
+.bg-amber-soft { background-color: var(--bx-amber-soft) !important; }
+.bg-coral-soft { background-color: var(--bx-coral-soft) !important; }
+.bg-light-2 { background-color: var(--bx-silver-100) !important; }
+.text-amber { color: #B45309 !important; }
+.text-coral { color: var(--bx-coral) !important; }
+.text-success { color: var(--bx-green) !important; }
+.text-warning { color: var(--bx-amber) !important; }
+.btn-outline-coral { color: var(--bx-coral); border-color: var(--bx-coral); }
+.btn-outline-coral:hover { background: var(--bx-coral); color: #fff; }
+.bg-coral { background-color: var(--bx-coral) !important; }
+
+/* ---------- Buttons ---------- */
+.btn-primary-blue {
+  background-color: var(--bx-blue);
+  border: 1px solid var(--bx-blue);
+  color: #fff;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: all .18s ease;
+}
+.btn-primary-blue:hover, .btn-primary-blue:focus {
+  background-color: #1D4ED8;
+  border-color: #1D4ED8;
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, .3);
+}
+.btn-dark { border-radius: 10px; font-weight: 600; }
+.btn:disabled { opacity: .65; }
+
+/* ---------- Navbar (Đen 16%) ---------- */
+.bx-navbar {
+  background: var(--bx-ink) !important;
+  box-shadow: 0 2px 14px rgba(15, 23, 42, .35);
+  padding: .7rem 0;
+}
+.bx-navbar .navbar-brand { font-size: 1.5rem; letter-spacing: -.5px; }
+.bx-navbar .nav-link { color: #E2E8F0 !important; font-weight: 500; font-size: .92rem; }
+.bx-navbar .nav-link:hover, .bx-navbar .nav-link.active { color: #fff !important; }
+.bx-avatar-xs { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+.bx-avatar-fallback {
+  background: var(--bx-silver-100); display: inline-flex; align-items: center;
+  justify-content: center; color: var(--bx-silver-600);
+}
+
+/* ---------- Typography ---------- */
+.text-white { color: #FFFFFF !important; }
+.text-white-50 { color: rgba(255, 255, 255, .5) !important; }
+.bx-display { font-size: clamp(2.2rem, 4vw, 3.4rem); line-height: 1.12; letter-spacing: -1.5px; }
+.bx-display-sm { font-size: clamp(1.6rem, 2.6vw, 2.2rem); letter-spacing: -.8px; }
+.bx-section-title { font-size: 1.85rem; letter-spacing: -.5px; }
+.bx-price-big { font-size: 2rem; letter-spacing: -1px; }
+
+/* ---------- Hero ---------- */
+.bx-hero {
+  background:
+    radial-gradient(1000px 400px at 85% 0%, rgba(37, 99, 235, .10), transparent 60%),
+    var(--bx-white);
+  border-bottom: 1px solid var(--bx-silver-100);
+}
+.bx-search-box { border: 1px solid var(--bx-silver-300) !important; border-radius: 16px !important; }
+.bx-hero-art { position: relative; }
+.bx-hero-art > img { border: 8px solid var(--bx-white); }
+.bx-float-card { position: absolute; left: -20px; bottom: 24px; min-width: 230px; }
+.bx-icon-round { width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+
+/* ---------- Shop cards ---------- */
+.bx-shop-card, .bx-vehicle-card, .bx-blog-card {
+  border: 1px solid var(--bx-silver-100) !important;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.bx-shop-card:hover, .bx-vehicle-card:hover, .bx-blog-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, .13) !important;
+}
+.bx-shop-banner { height: 170px; position: relative; overflow: hidden; background: var(--bx-silver-100); }
+.bx-shop-banner img { width: 100%; height: 100%; object-fit: cover; }
+.bx-shop-banner-placeholder { background: linear-gradient(135deg, #E2E8F0, #CBD5E1); color: var(--bx-silver-600); }
+.bx-shop-logo-placeholder { height: 190px; background: linear-gradient(135deg, #E2E8F0, #CBD5E1); color: var(--bx-silver-600); }
+
+/* ---------- Vehicle cards ---------- */
+.bx-vehicle-img { height: 175px; object-fit: cover; background: var(--bx-silver-100); }
+.bx-no-image { height: 175px; background: var(--bx-silver-100); color: var(--bx-silver-600); }
+.bx-spec-line {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; min-height: 34px;
+}
+
+/* ---------- Shop hero / filter ---------- */
+.bx-shop-hero {
+  background: linear-gradient(180deg, var(--bx-silver-100), var(--bx-white));
+  border-bottom: 1px solid var(--bx-silver-300);
+}
+.bx-filter-bar { border-color: var(--bx-silver-300) !important; }
+.form-range::-webkit-slider-thumb { background: var(--bx-blue) !important; }
+
+/* ---------- Vehicle detail ---------- */
+.bx-detail-main-img { border-radius: 12px; }
+.bx-thumb { border: 2px solid transparent; transition: .15s; flex: 0 0 auto; }
+.bx-thumb:hover, .bx-thumb.active { border-color: var(--bx-blue); opacity: .9; }
+.bx-sticky { position: sticky; top: 86px; }
+.bx-spec-box {
+  background: var(--bx-silver-100);
+  border: 1px solid var(--bx-silver-300);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.bx-spec-label { display: block; font-size: .75rem; color: var(--bx-silver-600); margin-bottom: 2px; }
+.bx-rating-big { font-size: 2.6rem; font-weight: 800; line-height: 1; }
+.bx-review-form { border: 1px solid var(--bx-silver-300) !important; }
+.bx-bargain-item { background: var(--bx-white); border-color: var(--bx-silver-300) !important; }
+.bx-star-pick.bi-star-fill { color: var(--bx-amber) !important; }
+
+/* ---------- Cart / Checkout ---------- */
+.bx-cart-item { border: 1px solid var(--bx-silver-100) !important; }
+.bx-success-ring {
+  width: 78px; height: 78px; border-radius: 50%;
+  background: var(--bx-green-soft); color: var(--bx-green);
+  display: flex; align-items: center; justify-content: center;
+}
+.bx-qr-img { max-width: 260px; border: 1px solid var(--bx-silver-300); padding: 8px; background: #fff; }
+
+/* ---------- Blog ---------- */
+.bx-blog-content { color: #334155; font-size: 1rem; line-height: 1.85; }
+.bx-blog-content p { margin-bottom: 1rem; }
+
+/* ---------- Stats ---------- */
+.bx-stat-card { border: 1px solid var(--bx-silver-100) !important; }
+
+/* ---------- Footer (Đen 16%) ---------- */
+.bx-footer { background: var(--bx-ink); color: #E2E8F0; }
+.bx-footer h5, .bx-footer h6 { color: #fff; }
+.bx-footer .text-muted { color: #94A3B8 !important; }
+.bx-footer a.text-muted:hover { color: #fff !important; }
+
+/* ---------- Alert palette overrides ---------- */
+.alert-coral { background: var(--bx-coral-soft); border-color: #FCA5A5; color: #991B1B; }
+.alert-success { background: var(--bx-green-soft); border-color: #6EE7B7; color: #065F46; }
+.alert-warning { background: var(--bx-amber-soft); border-color: #FCD34D; color: #92400E; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  .bx-sticky { position: static; }
+  .bx-float-card { left: 8px; bottom: 8px; min-width: 190px; }
+  .bx-detail-main-img { height: 280px !important; }
+  .bx-thumb-col .d-flex { max-height: 90px; }
+}

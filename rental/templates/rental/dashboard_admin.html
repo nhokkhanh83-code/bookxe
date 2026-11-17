@@ -1,0 +1,208 @@
+{% extends 'rental/base.html' %}
+{% load static %}
+
+{% block title %}Admin Dashboard - BookXe{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div><h1 class="fw-extra bx-display-sm mb-1">Admin Dashboard</h1><p class="text-muted mb-0">Tổng quan toàn bộ nền tảng BookXe.</p></div>
+    <a href="/admin/" class="btn btn-dark"><i class="bi bi-gear me-1"></i>Trang quản trị Django</a>
+  </div>
+
+  <div class="row g-3 mb-4" id="statsRow">
+    <div class="col-6 col-md-4 col-xl-2"><div class="bx-stat-card card border-0 shadow-sm rounded-4 p-3"><div class="small text-muted">Người dùng</div><div class="fw-extra fs-3" id="stUsers">...</div></div></div>
+    <div class="col-6 col-md-4 col-xl-2"><div class="bx-stat-card card border-0 shadow-sm rounded-4 p-3"><div class="small text-muted">Cửa hàng</div><div class="fw-extra fs-3" id="stShops">...</div></div></div>
+    <div class="col-6 col-md-4 col-xl-2"><div class="bx-stat-card card border-0 shadow-sm rounded-4 p-3"><div class="small text-muted">Xe cho thuê</div><div class="fw-extra fs-3" id="stVehicles">...</div></div></div>
+    <div class="col-6 col-md-4 col-xl-2"><div class="bx-stat-card card border-0 shadow-sm rounded-4 p-3"><div class="small text-muted">Đơn đặt cọc</div><div class="fw-extra fs-3" id="stOrders">...</div></div></div>
+    <div class="col-6 col-md-4 col-xl-2"><div class="bx-stat-card card border-0 shadow-sm rounded-4 p-3"><div class="small text-muted">Chờ duyệt giá</div><div class="fw-extra fs-3 text-warning" id="stBargains">...</div></div></div>
+    <div class="col-6 col-md-4 col-xl-2"><div class="bx-stat-card card border-0 shadow-sm rounded-4 p-3"><div class="small text-muted">Tổng tiền cọc</div><div class="fw-extra fs-4 text-primary-blue" id="stDeposit">...</div></div></div>
+  </div>
+
+  <!-- ========== QUẢN LÝ NGƯỜI DÙNG & PHÂN QUYỀN ========== -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header bg-white fw-bold border-0 pt-3 d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-people text-primary-blue me-2"></i>Quản lý Người dùng &amp; Phân quyền</span>
+      <span class="badge bg-silver-soft text-silver-dark" id="userCount">...</span>
+    </div>
+    <div class="card-body p-3 table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="bg-light-2">
+          <tr><th>ID</th><th>Username</th><th>Email</th><th>Điện thoại</th><th>Quyền hiện tại</th><th>Chọn quyền</th><th></th></tr>
+        </thead>
+        <tbody id="adminUserRows"><tr><td colspan="7" class="text-muted">Đang tải...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ========== LỊCH SỬ KHÁCH HÀNG ĐẶT/THUÊ XE ========== -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header bg-white fw-bold border-0 pt-3 d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-clock-history text-success me-2"></i>Lịch sử Khách hàng đã đặt/thuê xe (Historys)</span>
+      <span class="badge bg-silver-soft text-silver-dark" id="orderCount">...</span>
+    </div>
+    <div class="card-body p-3 table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="bg-light-2">
+          <tr><th>Mã đơn</th><th>Khách hàng</th><th>Xe đã thuê</th><th>Tiền cọc</th><th>Giờ giao xe</th><th>Địa chỉ nhận xe</th><th>Trạng thái</th><th>Cập nhật</th></tr>
+        </thead>
+        <tbody id="adminOrderRows"><tr><td colspan="8" class="text-muted">Đang tải...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white fw-bold border-0 pt-3">Quản lý nhanh</div>
+        <div class="card-body p-3">
+          <div class="d-grid gap-2">
+            <a href="/admin/users/user/" class="btn btn-outline-dark text-start"><i class="bi bi-people me-2"></i>Quản lý User & phân quyền Staff</a>
+            <a href="/admin/products/shop/" class="btn btn-outline-dark text-start"><i class="bi bi-shop me-2"></i>Duyệt / khóa cửa hàng</a>
+            <a href="/admin/blog/blog/" class="btn btn-outline-dark text-start"><i class="bi bi-newspaper me-2"></i>Quản lý tất cả Blog</a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white fw-bold border-0 pt-3">Thương lượng chờ xử lý</div>
+        <div class="card-body p-3" id="pendingBargains"><div class="text-muted small">Đang tải...</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const ROLE_LABELS = {user: 'Khách thuê xe', staff: 'Chủ cửa hàng', admin: 'Quản trị viên'};
+
+  function orderBadge(status) {
+    const map = {
+      pending_deposit: '<span class="badge bg-warning text-dark">Chờ đặt cọc</span>',
+      confirmed: '<span class="badge bg-primary-blue">Đã xác nhận</span>',
+      completed: '<span class="badge bg-success">Hoàn thành</span>',
+      cancelled: '<span class="badge bg-secondary">Đã hủy</span>'
+    };
+    return map[status] || '';
+  }
+
+  async function loadAdminUsers() {
+    try {
+      const data = await apiFetch('{% url "api-admin-users" %}');
+      const list = data.results || data;
+      document.getElementById('userCount').textContent = list.length + ' người';
+      document.getElementById('adminUserRows').innerHTML = list.length ? list.map(function (u) {
+        const options = ['user', 'staff', 'admin'].map(function (r) {
+          return '<option value="' + r + '"' + (u.role === r ? ' selected' : '') + '>' + ROLE_LABELS[r] + '</option>';
+        }).join('');
+        return '<tr>' +
+          '<td>' + u.id + '</td>' +
+          '<td class="fw-semibold">' + escapeHtml(u.username) + '</td>' +
+          '<td>' + escapeHtml(u.email || '') + '</td>' +
+          '<td>' + escapeHtml(u.phone || '') + '</td>' +
+          '<td>' + escapeHtml(u.role_display || u.role) + '</td>' +
+          '<td><select class="form-select form-select-sm role-select" data-id="' + u.id + '" style="min-width:150px">' + options + '</select></td>' +
+          '<td><button class="btn btn-sm btn-primary-blue btn-save-role" data-id="' + u.id + '"><i class="bi bi-save me-1"></i>Lưu quyền</button></td>' +
+        '</tr>';
+      }).join('') : '<tr><td colspan="7" class="text-muted">Chưa có người dùng nào.</td></tr>';
+
+      document.querySelectorAll('.btn-save-role').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          const id = btn.dataset.id;
+          const select = document.querySelector('.role-select[data-id="' + id + '"]');
+          btn.disabled = true;
+          try {
+            await apiFetch('/api/admin/users/' + id + '/role/', {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({role: select.value})
+            });
+            loadAdminUsers();
+          } catch (e) { alert(e.message); btn.disabled = false; }
+        });
+      });
+    } catch (e) { console.error(e); }
+  }
+
+  async function loadAdminOrders() {
+    try {
+      const data = await apiFetch('{% url "api-admin-orders" %}');
+      const list = data.results || data;
+      document.getElementById('orderCount').textContent = list.length + ' đơn';
+      document.getElementById('adminOrderRows').innerHTML = list.length ? list.map(function (o) {
+        const vehicles = (o.items || []).map(function (it) {
+          return escapeHtml(it.vehicle_name) + ' (' + it.total_days + ' ngày)';
+        }).join('<br>') || '—';
+        let action = '<a href="/orders/' + encodeURIComponent(o.order_code) + '/" class="btn btn-sm btn-outline-dark">Xem</a>';
+        if (o.status === 'pending_deposit') {
+          action = '<button class="btn btn-sm btn-warning fw-bold btn-admin-confirm" data-id="' + o.id + '">Xác nhận cọc</button>';
+        } else if (o.status === 'confirmed') {
+          action = '<button class="btn btn-sm btn-success fw-bold btn-admin-complete" data-id="' + o.id + '">Hoàn thiện đơn - Đã giao xe</button>';
+        }
+        return '<tr>' +
+          '<td><strong>' + o.order_code + '</strong></td>' +
+          '<td>' + escapeHtml(o.user_name || '') + '<br><small class="text-muted">' + escapeHtml(o.receiver_name || '') + ' • ' + escapeHtml(o.receiver_phone || '') + '</small></td>' +
+          '<td class="small">' + vehicles + '</td>' +
+          '<td class="fw-bold text-primary-blue">' + money(o.deposit_paid_amount) + '</td>' +
+          '<td class="small">' + escapeHtml(o.delivery_time_note || '') + '</td>' +
+          '<td class="small">' + escapeHtml(o.pickup_address || '') + '</td>' +
+          '<td>' + orderBadge(o.status) + '</td>' +
+          '<td>' + action + '</td>' +
+        '</tr>';
+      }).join('') : '<tr><td colspan="8" class="text-muted">Chưa có đơn đặt xe nào.</td></tr>';
+
+      document.querySelectorAll('.btn-admin-confirm').forEach(function (btn) {
+        btn.addEventListener('click', function () { updateOrder(btn.dataset.id, false); });
+      });
+      document.querySelectorAll('.btn-admin-complete').forEach(function (btn) {
+        btn.addEventListener('click', function () { updateOrder(btn.dataset.id, true); });
+      });
+    } catch (e) { console.error(e); }
+  }
+
+  async function updateOrder(id, complete) {
+    const url = complete ? '/api/orders/' + id + '/complete/' : '/api/orders/' + id + '/confirm-deposit/';
+    try {
+      await apiFetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({delivery_time_note: 'Giao xe trong vòng 1 - 2 giờ tới'})
+      });
+      loadAdminOrders();
+      loadStats();
+    } catch (e) { alert(e.message); }
+  }
+
+  async function loadStats() {
+    try {
+      const s = await apiFetch('{% url "api-admin-stats" %}');
+      document.getElementById('stUsers').textContent = s.total_users;
+      document.getElementById('stShops').textContent = s.total_shops;
+      document.getElementById('stVehicles').textContent = s.total_vehicles;
+      document.getElementById('stOrders').textContent = s.total_orders;
+      document.getElementById('stBargains').textContent = s.pending_bargains;
+      document.getElementById('stDeposit').textContent = money(s.total_deposit);
+    } catch (e) { console.error(e); }
+  }
+
+  async function loadPendingBargains() {
+    try {
+      const data = await apiFetch('/api/bargains/shop/?status=pending');
+      const list = data.results || data;
+      document.getElementById('pendingBargains').innerHTML = list.length ? list.slice(0, 8).map(function (b) {
+        return '<div class="d-flex justify-content-between align-items-center border-bottom py-2 small">' +
+          '<div><strong>' + escapeHtml(b.user_name) + '</strong> → ' + escapeHtml(b.vehicle_name) +
+          '<div class="text-muted">Đề xuất ' + money(b.offered_price_per_day) + '/ngày • ' + b.rental_days + ' ngày</div></div>' +
+          '<span class="badge bg-warning text-dark">Chờ</span></div>';
+      }).join('') : '<div class="text-muted small">Không có yêu cầu nào.</div>';
+    } catch (e) { console.error(e); }
+  }
+
+  loadStats();
+  loadAdminUsers();
+  loadAdminOrders();
+  loadPendingBargains();
+</script>
+{% endblock %}

@@ -1,0 +1,494 @@
+{% extends 'rental/base.html' %}
+{% load static %}
+
+{% block title %}{{ vehicle.brand }} {{ vehicle.name }} - BookXe{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <nav aria-label="breadcrumb">
+    <ol class="breadcrumb small">
+      <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-muted">Trang chủ</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'shop_detail' shop.slug %}" class="text-muted">{{ shop.shop_name }}</a></li>
+      <li class="breadcrumb-item active">{{ vehicle.name }}</li>
+    </ol>
+  </nav>
+
+  <!-- ========== GALLERY ========== -->
+  <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+    <div class="row g-0">
+      <div class="col-md-9">
+        <img id="mainImage" src="{% if vehicle.primary_image %}{{ vehicle.primary_image.url }}{% endif %}"
+             class="bx-detail-main-img w-100" alt="{{ vehicle.name }}"
+             style="height:430px;object-fit:cover;background:#F1F5F9">
+      </div>
+      <div class="col-md-3 p-2 bx-thumb-col">
+        <div class="d-flex flex-md-column flex-row overflow-auto gap-2 h-100">
+          {% for image in vehicle.images.all %}
+            <img src="{{ image.image.url }}" class="bx-thumb {% if forloop.first %}active{% endif %}" data-src="{{ image.image.url }}" alt="thumb" style="height:100px;width:130px;object-fit:cover;cursor:pointer;border-radius:10px">
+          {% empty %}
+            <div class="d-flex align-items-center justify-content-center h-100 text-muted small">Chưa có ảnh</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== TITLE & BADGES ========== -->
+  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+    <div>
+      <div class="d-flex flex-wrap gap-2 mb-2">
+        <span class="badge bg-silver-soft text-silver-dark">{{ vehicle.get_vehicle_type_display }}</span>
+        {% if vehicle.availability_status == 'available' %}
+          <span class="badge bg-success-soft text-success"><i class="bi bi-circle-fill me-1" style="font-size:.5rem"></i>{{ vehicle.get_availability_status_display }}</span>
+        {% elif vehicle.availability_status == 'rented' %}
+          <span class="badge bg-coral-soft text-coral"><i class="bi bi-exclamation-circle me-1"></i>{{ vehicle.get_availability_status_display }}</span>
+        {% else %}
+          <span class="badge bg-silver-soft text-silver-dark"><i class="bi bi-tools me-1"></i>{{ vehicle.get_availability_status_display }}</span>
+        {% endif %}
+        {% if vehicle.allow_bargain %}<span class="badge bg-primary-blue-soft text-primary-blue"><i class="bi bi-chat-dots me-1"></i>Cho phép thương lượng</span>{% endif %}
+      </div>
+      <h1 class="fw-extra bx-display-sm mb-1">{{ vehicle.brand }} {{ vehicle.name }}</h1>
+      <p class="text-muted mb-0"><i class="bi bi-hash me-1"></i>{{ vehicle.license_plate }} <span class="mx-2">•</span> <i class="bi bi-calendar3 me-1"></i>Đời {{ vehicle.model_year }} <span class="mx-2">•</span> <i class="bi bi-shop me-1"></i>{{ shop.shop_name }}</p>
+    </div>
+    <div class="text-md-end">
+      <div class="text-primary-blue fw-extra bx-price-big">{{ vehicle.base_price_per_day|floatformat:0 }}<small class="text-muted fw-normal fs-6"> đ/ngày</small></div>
+      <div class="text-warning small"><i class="bi bi-star-fill"></i> <span id="avgRatingTop">{{ vehicle.average_rating|floatformat:1 }}</span> <span class="text-muted">({{ vehicle.review_count }} đánh giá)</span></div>
+    </div>
+  </div>
+
+  <!-- ========== HAI GÓC DƯỚI: TRÁI 60% / PHẢI 40% ========== -->
+  <div class="row g-4 align-items-start">
+    <!-- ---------- GÓC TRÁI ---------- -->
+    <div class="col-lg-8">
+      <!-- Thông số kỹ thuật -->
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-white fw-bold border-0 pt-3"><i class="bi bi-sliders2 text-primary-blue me-2"></i>Thông số kỹ thuật chi tiết</div>
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6"><div class="bx-spec-box"><span class="bx-spec-label">Hãng xe</span><strong>{{ vehicle.brand }}</strong></div></div>
+            <div class="col-md-6"><div class="bx-spec-box"><span class="bx-spec-label">Biển số xe</span><strong>{{ vehicle.license_plate }}</strong></div></div>
+            <div class="col-md-6"><div class="bx-spec-box"><span class="bx-spec-label">Năm sản xuất</span><strong>{{ vehicle.model_year }}</strong></div></div>
+            <div class="col-md-6"><div class="bx-spec-box"><span class="bx-spec-label">Loại xe</span><strong>{{ vehicle.get_vehicle_type_display }}</strong></div></div>
+            {% for key, value in vehicle.specifications.items %}
+              <div class="col-md-6"><div class="bx-spec-box"><span class="bx-spec-label">{{ key }}</span><strong>{{ value }}</strong></div></div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Tình trạng xe thực tế -->
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-white fw-bold border-0 pt-3"><i class="bi bi-clipboard-check text-success me-2"></i>Tình trạng xe thực tế</div>
+        <div class="card-body">
+          <p class="mb-0">{{ vehicle.condition_status|default:"Chủ cửa hàng đang cập nhật tình trạng chi tiết." }}</p>
+        </div>
+      </div>
+
+      <!-- Đặt cọc : chọn ngày -->
+      <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-header bg-white fw-bold border-0 pt-3"><i class="bi bi-calendar-check text-primary-blue me-2"></i>Đặt cọc thuê ngay</div>
+        <div class="card-body">
+          {% if user.is_authenticated %}
+            <div class="row g-3 align-items-end">
+              <div class="col-md-4"><label class="form-label small fw-semibold">Ngày nhận xe</label><input type="date" id="startDate" class="form-control"></div>
+              <div class="col-md-4"><label class="form-label small fw-semibold">Ngày trả xe</label><input type="date" id="endDate" class="form-control"></div>
+              <div class="col-md-4 d-grid"><button class="btn btn-dark" id="addToCartBtn"><i class="bi bi-cart-plus me-1"></i>Add to Deposit Cart</button></div>
+            </div>
+            <div id="cartMsg" class="small mt-2"></div>
+            <p class="text-muted small mt-2 mb-0"><i class="bi bi-info-circle me-1"></i>Đơn giá áp dụng sẽ tự động dùng <strong>giá thương lượng đã được duyệt</strong> nếu có, nếu không dùng giá niêm yết. Tiền đặt cọc = 30% tổng tiền thuê.</p>
+          {% else %}
+            <div class="alert alert-warning mb-0">Vui lòng <a href="{% url 'login' %}?next={% url 'vehicle_detail' vehicle.pk %}">đăng nhập</a> để đặt cọc và thương lượng giá.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Đánh giá & Bình luận -->
+      <div class="card border-0 shadow-sm rounded-4">
+        <div class="card-header bg-white fw-bold border-0 pt-3"><i class="bi bi-star-fill text-warning me-2"></i>Đánh giá & Bình luận từ khách cũ</div>
+        <div class="card-body">
+          <div class="d-flex align-items-center gap-3 mb-4">
+            <div class="bx-rating-big text-warning"><i class="bi bi-star-fill"></i> <span id="avgRating">{{ vehicle.average_rating|floatformat:1 }}</span> <small class="text-muted fw-normal">/ 5.0</small></div>
+            <div class="text-warning small" id="avgStars">{% for i in "12345"|make_list %}<i class="bi bi-star"></i>{% endfor %}</div>
+            <div class="text-muted small" id="reviewTotal">{{ vehicle.review_count }} lượt đánh giá sao</div>
+          </div>
+
+          <!-- TÌM KIẾM & LỌC ĐÁNH GIÁ NÂNG CAO -->
+          <div class="card bg-light-2 border-0 rounded-4 mb-4">
+            <div class="card-body p-3">
+              <div class="small fw-bold mb-2"><i class="bi bi-funnel text-primary-blue me-1"></i>Tìm kiếm &amp; Lọc đánh giá nâng cao (Advanced Review Search)</div>
+              <div class="d-flex flex-wrap gap-1 mb-2" id="reviewFilter">
+                <button class="btn btn-sm btn-dark active" data-rating="all">Tất cả</button>
+                <button class="btn btn-sm btn-outline-coral" data-rating="1">1 ★ (Xem lý do chê)</button>
+                <button class="btn btn-sm btn-outline-secondary" data-rating="2">2 ★</button>
+                <button class="btn btn-sm btn-outline-secondary" data-rating="3">3 ★</button>
+                <button class="btn btn-sm btn-outline-secondary" data-rating="4">4 ★</button>
+                <button class="btn btn-sm btn-outline-secondary" data-rating="5">5 ★</button>
+                <button class="btn btn-sm btn-outline-primary" data-rating="comment">Chỉ bình luận</button>
+              </div>
+              <input type="search" class="form-control form-control-sm" id="reviewSearch" placeholder="Tìm lý do: xe hư, thái độ, hao xăng, phanh...">
+            </div>
+          </div>
+
+          <div id="reviewList" class="mb-4">
+            {% for r in vehicle.reviews.all %}
+              <div class="bx-review border-bottom py-3" data-rating="{% if r.rating %}{{ r.rating }}{% else %}comment{% endif %}" data-comment="{{ r.comment }}">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  {% if r.user.avatar %}<img src="{{ r.user.avatar.url }}" class="bx-avatar-xs" alt="">{% else %}<div class="bx-avatar-xs bx-avatar-fallback"><i class="bi bi-person"></i></div>{% endif %}
+                  <strong class="small">{{ r.user.get_full_name|default:r.user.username }}</strong>
+                  {% if r.rating %}<span class="text-warning small">{% for i in "12345"|make_list %}{% if forloop.counter <= r.rating %}<i class="bi bi-star-fill"></i>{% else %}<i class="bi bi-star"></i>{% endif %}{% endfor %}</span>{% else %}<span class="badge bg-silver-soft text-silver-dark">Bình luận</span>{% endif %}
+                  <span class="text-muted small ms-auto">{{ r.created_at|date:"d/m/Y" }}</span>
+                </div>
+                <p class="small text-muted mb-0">{{ r.comment }}</p>
+              </div>
+            {% empty %}
+              <p class="text-muted small" id="noReviewText">Chưa có đánh giá nào. Hãy là người đầu tiên!</p>
+            {% endfor %}
+          </div>
+
+          {% if user.is_authenticated %}
+            <form id="reviewForm" class="bx-review-form bg-light-2 p-3 rounded-4">
+              {% if user_has_rated %}
+                <div class="alert alert-info small py-2 px-3 mb-2">
+                  <i class="bi bi-info-circle me-1"></i>Bạn đã đánh giá sao cho mục này. Bạn vẫn có thể tiếp tục viết thêm bình luận bên dưới.
+                </div>
+              {% else %}
+                <label class="form-label small fw-semibold">Đánh giá của bạn (chọn 1–5 sao)</label>
+                <div class="d-flex gap-1 mb-2" id="starPicker">
+                  {% for i in "12345"|make_list %}
+                    <i class="bi bi-star bx-star-pick fs-4 text-muted" data-value="{{ forloop.counter }}" style="cursor:pointer"></i>
+                  {% endfor %}
+                </div>
+              {% endif %}
+              <label class="form-label small fw-semibold">Nội dung bình luận <span class="text-coral">*</span></label>
+              <textarea id="reviewComment" class="form-control mb-2" rows="2" placeholder="Chia sẻ trải nghiệm thuê xe của bạn..." required></textarea>
+              <button type="submit" class="btn btn-primary-blue btn-sm" id="reviewSubmitBtn"><i class="bi bi-send me-1"></i>{% if user_has_rated %}Gửi thêm bình luận{% else %}Gửi đánh giá{% endif %}</button>
+              <span id="reviewMsg" class="small ms-2"></span>
+            </form>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- GÓC PHẢI: STICKY BARGAIN WIDGET ---------- -->
+    <div class="col-lg-4">
+      <div class="bx-sticky">
+        <div class="card border-0 shadow-lg rounded-4 overflow-hidden" id="bargain">
+          <div class="card-header bg-dark text-white py-3">
+            <h5 class="fw-extra mb-0"><i class="bi bi-chat-dots text-primary-blue me-2"></i>Thương lượng giá</h5>
+            <small class="text-white-50">Make an Offer - Trả giá trực tiếp cho chủ cửa hàng</small>
+          </div>
+          <div class="card-body p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-light-2 rounded-3">
+              <div><div class="small text-muted">Giá niêm yết / ngày</div><div class="fw-extra fs-4 text-dark">{{ vehicle.base_price_per_day|floatformat:0 }} đ</div></div>
+              <span class="badge bg-primary-blue-soft text-primary-blue">Giá sàn được ẩn</span>
+            </div>
+
+            {% if not user.is_authenticated %}
+              <div class="alert alert-warning small">Vui lòng <a href="{% url 'login' %}?next={% url 'vehicle_detail' vehicle.pk %}#bargain">đăng nhập</a> để gửi mức giá đề xuất.</div>
+            {% elif not vehicle.allow_bargain %}
+              <div class="alert alert-info small">Chiếc xe này không cho phép thương lượng giá. Vui lòng đặt cọc theo giá niêm yết.</div>
+            {% else %}
+              <form id="bargainForm">
+                <div class="mb-3">
+                  <label class="form-label small fw-semibold">Bạn thuộc đối tượng nào?</label>
+                  <select id="customerType" class="form-select form-select-sm">
+                    <option value="student">Học sinh / Sinh viên {% if not user.is_student %}(chưa xác thực){% endif %}</option>
+                    <option value="local_tourist">Khách du lịch</option>
+                    <option value="off_season">Thuê mùa thấp điểm</option>
+                    <option value="long_term">Thuê nhiều ngày</option>
+                  </select>
+                </div>
+                <div class="row g-2 mb-3">
+                  <div class="col-6"><label class="form-label small fw-semibold">Số ngày thuê</label><input type="number" id="rentalDays" class="form-control form-control-sm" min="1" value="3"></div>
+                  <div class="col-6"><label class="form-label small fw-semibold">Giá đề xuất/ngày</label><input type="number" id="offeredPrice" class="form-control form-control-sm" min="1" value="{{ vehicle.base_price_per_day|floatformat:0 }}" placeholder="VD: 180000"></div>
+                </div>
+                <div class="mb-3"><label class="form-label small fw-semibold">Lời nhắn cho chủ cửa hàng</label><textarea id="bargainNote" class="form-control form-control-sm" rows="2" placeholder="VD: Em là sinh viên đi thực tập 4 ngày, mong shop giảm giá ạ!"></textarea></div>
+                <button type="submit" class="btn btn-primary-blue w-100 py-2 fw-semibold"><i class="bi bi-send me-1"></i>Gửi mức giá đề xuất</button>
+                <div id="bargainMsg" class="small mt-2"></div>
+              </form>
+            {% endif %}
+
+            <hr>
+            <h6 class="fw-bold mb-3"><i class="bi bi-clock-history text-amber me-1"></i>Lịch sử thương lượng của bạn</h6>
+            <div id="bargainHistory">
+              <div class="text-muted small">Đang tải lịch sử...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const VEHICLE_ID = {{ vehicle.id }};
+  const BASE_PRICE = {{ vehicle.base_price_per_day|floatformat:0 }};
+  const IS_AUTH = {% if user.is_authenticated %}true{% else %}false{% endif %};
+  let USER_HAS_RATED = {% if user_has_rated %}true{% else %}false{% endif %};
+
+  // --- Gallery thumbnails ---
+  document.querySelectorAll('.bx-thumb').forEach(function (t) {
+    t.addEventListener('click', function () {
+      document.getElementById('mainImage').src = t.dataset.src;
+      document.querySelectorAll('.bx-thumb').forEach(function (x) { x.classList.remove('active'); });
+      t.classList.add('active');
+    });
+  });
+
+  // --- Star picker ---
+  let selectedRating = 0;
+  document.querySelectorAll('.bx-star-pick').forEach(function (star) {
+    star.addEventListener('click', function () {
+      selectedRating = parseInt(star.dataset.value, 10);
+      document.querySelectorAll('.bx-star-pick').forEach(function (s) {
+        s.classList.toggle('text-warning', parseInt(s.dataset.value, 10) <= selectedRating);
+        s.classList.toggle('text-muted', parseInt(s.dataset.value, 10) > selectedRating);
+        s.classList.toggle('bi-star-fill', parseInt(s.dataset.value, 10) <= selectedRating);
+        s.classList.toggle('bi-star', parseInt(s.dataset.value, 10) > selectedRating);
+      });
+    });
+  });
+
+  // Bình luận không có sao: chỉ hiện nhãn, KHÔNG hiện 5 sao rỗng.
+  function renderStars(n) {
+    if (!n) return '<span class="badge bg-silver-soft text-silver-dark">Bình luận</span>';
+    let html = '';
+    for (let i = 1; i <= 5; i++) html += '<i class="bi ' + (i <= n ? 'bi-star-fill text-warning' : 'bi-star text-muted') + '"></i>';
+    return html;
+  }
+
+  function renderAvgStars(avg) {
+    const filled = Math.round(Number(avg) || 0);
+    let html = '';
+    for (let i = 1; i <= 5; i++) html += '<i class="bi ' + (i <= filled ? 'bi-star-fill text-warning' : 'bi-star text-muted') + '"></i>';
+    return html;
+  }
+
+  let allReviews = [];
+  let reviewFilterRating = 'all';
+  let reviewSearchTerm = '';
+
+  function renderReviewList() {
+    const list = allReviews.filter(function (r) {
+      const ratingKey = r.rating ? String(r.rating) : 'comment';
+      const matchRating = reviewFilterRating === 'all' || ratingKey === reviewFilterRating;
+      const hay = (r.comment || '').toLowerCase();
+      return matchRating && (!reviewSearchTerm || hay.indexOf(reviewSearchTerm) >= 0);
+    });
+    const box = document.getElementById('reviewList');
+    if (!box) return;
+    box.innerHTML = list.length ? list.map(function (r) {
+      return '<div class="bx-review border-bottom py-3">' +
+        '<div class="d-flex align-items-center gap-2 mb-1">' +
+          (r.user_avatar ? '<img src="' + r.user_avatar + '" class="bx-avatar-xs" alt="">' : '<div class="bx-avatar-xs bx-avatar-fallback"><i class="bi bi-person"></i></div>') +
+          '<strong class="small">' + escapeHtml(r.user_name) + '</strong>' +
+          '<span class="text-warning small">' + renderStars(r.rating) + '</span>' +
+          '<span class="text-muted small ms-auto">' + r.created_at + '</span>' +
+        '</div><p class="small text-muted mb-0">' + escapeHtml(r.comment) + '</p></div>';
+    }).join('') : '<p class="text-muted small">Không có đánh giá khớp điều kiện lọc.</p>';
+  }
+
+  document.querySelectorAll('#reviewFilter button').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('#reviewFilter button').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      reviewFilterRating = btn.dataset.rating;
+      renderReviewList();
+    });
+  });
+  const reviewSearch = document.getElementById('reviewSearch');
+  if (reviewSearch) {
+    reviewSearch.addEventListener('input', function () {
+      reviewSearchTerm = this.value.trim().toLowerCase();
+      renderReviewList();
+    });
+  }
+
+  // --- Reviews AJAX ---
+  const reviewForm = document.getElementById('reviewForm');
+  if (reviewForm) {
+    reviewForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const comment = document.getElementById('reviewComment').value.trim();
+      const msg = document.getElementById('reviewMsg');
+      if (!comment) {
+        msg.innerHTML = '<span class="text-coral">Vui lòng nhập nội dung bình luận trước khi gửi!</span>';
+        return;
+      }
+      if (!USER_HAS_RATED && !selectedRating) {
+        msg.innerHTML = '<span class="text-coral">Vui lòng chọn từ 1 đến 5 sao trước khi gửi!</span>';
+        return;
+      }
+      // Đã đánh giá sao rồi -> chỉ gửi comment, không gửi rating.
+      const payload = {vehicle: VEHICLE_ID, comment: comment};
+      if (!USER_HAS_RATED) payload.rating = selectedRating;
+      try {
+        await apiFetch('{% url "api-reviews" %}', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        msg.innerHTML = '<span class="text-success">' + (USER_HAS_RATED ? 'Đã gửi bình luận!' : 'Cảm ơn bạn đã đánh giá!') + '</span>';
+        // Khóa ngay hàng chọn sao sau lần đầu, chỉ cho gửi thêm bình luận chữ.
+        if (!USER_HAS_RATED) {
+          USER_HAS_RATED = true;
+          const picker = document.getElementById('starPicker');
+          if (picker) picker.remove();
+          const submit = document.getElementById('reviewSubmitBtn');
+          if (submit) submit.innerHTML = '<i class="bi bi-send me-1"></i>Gửi thêm bình luận';
+        }
+        document.getElementById('reviewComment').value = '';
+        loadDetail();
+      } catch (err) {
+        msg.innerHTML = '<span class="text-coral">' + escapeHtml(err.message) + '</span>';
+      }
+    });
+  }
+
+  // --- Bargain submit ---
+  const bargainForm = document.getElementById('bargainForm');
+  if (bargainForm) {
+    bargainForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const msg = document.getElementById('bargainMsg');
+      const payload = {
+        vehicle: VEHICLE_ID,
+        customer_type: document.getElementById('customerType').value,
+        rental_days: parseInt(document.getElementById('rentalDays').value, 10),
+        offered_price_per_day: parseInt(document.getElementById('offeredPrice').value, 10),
+        note: document.getElementById('bargainNote').value.trim()
+      };
+      try {
+        await apiFetch('{% url "api-bargain-create" %}', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+        msg.innerHTML = '<span class="text-success">Đã gửi! Chủ cửa hàng sẽ phản hồi ngay tại đây.</span>';
+        refreshBargains();
+      } catch (err) {
+        let text = err.message;
+        if (err.data) {
+          const firstKey = Object.keys(err.data)[0];
+          if (firstKey && Array.isArray(err.data[firstKey])) text = err.data[firstKey][0];
+        }
+        msg.innerHTML = '<span class="text-coral">' + escapeHtml(text) + '</span>';
+      }
+    });
+  }
+
+  function bargainStatusBadge(status) {
+    const map = {
+      pending: '<span class="badge bg-warning text-dark">Đang chờ duyệt</span>',
+      accepted: '<span class="badge bg-success-soft text-success">Shop đã đồng ý giá</span>',
+      countered: '<span class="badge bg-primary-blue-soft text-primary-blue">Shop báo giá lại</span>',
+      rejected: '<span class="badge bg-coral-soft text-coral">Shop từ chối</span>'
+    };
+    return map[status] || '';
+  }
+
+  function renderBargains(list) {
+    const box = document.getElementById('bargainHistory');
+    if (!list || !list.length) { box.innerHTML = '<div class="text-muted small">Bạn chưa gửi yêu cầu thương lượng nào.</div>'; return; }
+    box.innerHTML = list.map(function (b) {
+      let priceLine = 'Bạn đề xuất: <strong class="text-primary-blue">' + money(b.offered_price_per_day) + '</strong>/ngày';
+      if (b.status === 'countered' && b.counter_price) {
+        priceLine += '<br>Shop báo lại: <strong class="text-dark">' + money(b.counter_price) + '</strong>/ngày';
+      }
+      if (b.status === 'accepted') {
+        priceLine += '<br><strong class="text-success">Chốt giá: ' + money(b.final_price) + '/ngày</strong>';
+      }
+      const applyBtn = (b.status === 'accepted' || b.status === 'countered')
+        ? '<button class="btn btn-success btn-sm mt-2 w-100 btn-apply" data-price="' + (b.final_price) + '"><i class="bi bi-check2-circle me-1"></i>Áp dụng giá này & Đặt cọc ngay</button>'
+        : '';
+      const note = b.note ? '<div class="small text-muted fst-italic mt-1">"' + escapeHtml(b.note) + '"</div>' : '';
+      return '<div class="bx-bargain-item border rounded-3 p-2 mb-2">' +
+        '<div class="d-flex justify-content-between align-items-center">' + bargainStatusBadge(b.status) +
+          '<span class="text-muted" style="font-size:.72rem">' + b.created_at + '</span></div>' +
+        '<div class="small mt-1">' + priceLine + '</div>' +
+        '<div class="small text-muted">Số ngày: ' + b.rental_days + ' • ' + escapeHtml(b.customer_type_display) + '</div>' + note + applyBtn +
+        '</div>';
+    }).join('');
+
+    document.querySelectorAll('.btn-apply').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const s = document.getElementById('startDate');
+        const e = document.getElementById('endDate');
+        if (!s || !e || !s.value || !e.value) {
+          alert('Vui lòng chọn ngày nhận và ngày trả xe ở cột bên trái trước khi áp dụng giá.');
+          if (s) s.focus();
+          return;
+        }
+        document.getElementById('offeredPrice').value = btn.dataset.price;
+        addToCart();
+      });
+    });
+  }
+
+  async function refreshBargains() {
+    if (!IS_AUTH) return;
+    try {
+      const data = await apiFetch('/api/vehicles/' + VEHICLE_ID + '/');
+      renderBargains(data.my_bargains || []);
+      if (data.average_rating !== undefined) {
+        document.getElementById('avgRating').textContent = Number(data.average_rating).toFixed(1);
+        document.getElementById('avgRatingTop').textContent = Number(data.average_rating).toFixed(1);
+        document.getElementById('reviewTotal').textContent = data.review_count + ' lượt đánh giá sao';
+      }
+    } catch (e) { console.error(e); }
+  }
+
+  async function loadDetail() {
+    try {
+      const data = await apiFetch('/api/vehicles/' + VEHICLE_ID + '/');
+      allReviews = data.reviews || [];
+      renderReviewList();
+      const ratedOnly = allReviews.filter(function (r) { return r.rating; });
+      const avg = ratedOnly.length
+        ? ratedOnly.reduce(function (a, r) { return a + Number(r.rating); }, 0) / ratedOnly.length
+        : 0;
+      const avgEl = document.getElementById('avgRating');
+      const avgTop = document.getElementById('avgRatingTop');
+      if (avgEl) avgEl.textContent = avg.toFixed(1);
+      if (avgTop) avgTop.textContent = avg.toFixed(1);
+      const avgStarsEl = document.getElementById('avgStars');
+      if (avgStarsEl) avgStarsEl.innerHTML = renderAvgStars(avg);
+      const totalEl = document.getElementById('reviewTotal');
+      if (totalEl) totalEl.textContent = ratedOnly.length + ' lượt đánh giá sao';
+    } catch (e) { console.error(e); }
+  }
+
+  // --- Add to cart ---
+  const addToCartBtn = document.getElementById('addToCartBtn');
+  if (addToCartBtn) {
+    addToCartBtn.addEventListener('click', function () { addToCart(); });
+  }
+
+  async function addToCart() {
+    const s = document.getElementById('startDate').value;
+    const e = document.getElementById('endDate').value;
+    const msg = document.getElementById('cartMsg');
+    if (!s || !e) { msg.innerHTML = '<span class="text-coral">Vui lòng chọn ngày nhận và ngày trả xe.</span>'; return; }
+    try {
+      await apiFetch('{% url "api-cart-add" %}', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({vehicle_id: VEHICLE_ID, start_date: s, end_date: e})
+      });
+      msg.innerHTML = '<span class="text-success"><i class="bi bi-check-circle"></i> Đã thêm vào giỏ đặt cọc. </span><a href="{% url 'cart' %}" class="fw-semibold">Xem giỏ →</a>';
+      if (document.getElementById('cartBadge')) {
+        document.getElementById('cartBadge').textContent = parseInt(document.getElementById('cartBadge').textContent || '0', 10) + 1;
+      }
+    } catch (err) {
+      msg.innerHTML = '<span class="text-coral">' + escapeHtml(err.message) + '</span>';
+    }
+  }
+
+  // Khởi tạo + polling "real-time" mỗi 5 giây
+  loadDetail();
+  refreshBargains();
+  if (IS_AUTH) setInterval(refreshBargains, 5000);
+</script>
+{% endblock %}

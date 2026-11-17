@@ -1,0 +1,134 @@
+{% extends 'rental/base.html' %}
+{% load static %}
+
+{% block title %}Blog ưu đãi xe - BookXe{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="mb-4">
+    <h1 class="fw-extra bx-display-sm mb-1"><i class="bi bi-newspaper text-amber me-2"></i>Blog ưu đãi từ các cửa hàng</h1>
+    <p class="text-muted mb-0">Tin tức xe mới nhập, xe tân trang, giảm giá sinh viên. Bấm vào bài để xem xe và thương lượng giá ngay.</p>
+  </div>
+  {% if user.is_superuser or user.role == 'admin' or user.role == 'staff' %}
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+      <div class="card-header bg-white fw-bold border-0 pt-3 d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-plus-circle text-primary-blue me-2"></i>Đăng bài Blog mới</span>
+        <span class="badge bg-success-soft text-success">
+          {% if user.is_superuser or user.role == 'admin' %}Quản trị viên{% else %}Chủ cửa hàng{% endif %}
+        </span>
+      </div>
+      <div class="card-body p-3">
+        <form id="blogCreateForm" class="row g-3" enctype="multipart/form-data" name="blogCreateForm">
+          <div class="col-md-4">
+            <label class="form-label small fw-semibold">Tiêu đề bài viết <span class="text-coral">*</span></label>
+            <input type="text" class="form-control" id="newBlogTitle" name="title" placeholder="VD: Xe mới nhập, giảm giá sinh viên..." required>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small fw-semibold">Nhãn ưu đãi</label>
+            <input type="text" class="form-control" id="newBlogBadge" name="promo_badge" placeholder="VD: Giảm 25% sinh viên">
+          </div>
+          <div class="col-md-5">
+            <label class="form-label small fw-semibold">Nội dung <span class="text-coral">*</span></label>
+            <textarea class="form-control" id="newBlogContent" name="content" rows="2" placeholder="Giới thiệu xe / cửa hàng, ưu đãi, thời gian thuê..." required></textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Ảnh đại diện bài viết (thumbnail)</label>
+            <input type="file" class="form-control" id="newBlogThumbnail" name="thumbnail" accept="image/*">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small fw-semibold">Sản phẩm xe đính kèm (Featured Product)</label>
+            <select class="form-select" id="newBlogVehicle" name="featured_vehicle">
+              <option value="">-- Không chọn --</option>
+            </select>
+          </div>
+          <div class="col-12 d-flex align-items-center gap-3">
+            <button type="submit" class="btn btn-primary-blue"><i class="bi bi-send me-1"></i>+ Đăng bài Blog mới</button>
+            <span id="blogCreateMsg" class="small"></span>
+          </div>
+        </form>
+      </div>
+    </div>
+  {% endif %}
+
+  <div id="blogGrid" class="row g-4"><div class="text-muted">Đang tải bài viết...</div></div>
+  <div id="blogEmpty" class="alert alert-info d-none">Chưa có bài viết nào.</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  async function loadBlogs() {
+    try {
+      const data = await apiFetch('{% url "api-blogs" %}');
+      const blogs = data.results || data;
+      const grid = document.getElementById('blogGrid');
+      grid.innerHTML = '';
+      if (!blogs.length) { document.getElementById('blogEmpty').classList.remove('d-none'); return; }
+      blogs.forEach(function (b) {
+        const col = document.createElement('div');
+        col.className = 'col-md-6 col-lg-4';
+        col.innerHTML =
+          '<a href="/blogs/' + encodeURIComponent(b.slug) + '/" class="text-decoration-none">' +
+            '<div class="card bx-blog-card h-100 border-0 shadow-sm overflow-hidden">' +
+              (b.thumbnail_url ? '<img src="' + b.thumbnail_url + '" class="card-img-top" style="height:190px;object-fit:cover">' : '<div class="bg-light-2 d-flex align-items-center justify-content-center" style="height:190px"><i class="bi bi-newspaper fs-1 text-muted"></i></div>') +
+              '<div class="card-body p-3">' +
+                (b.promo_badge ? '<span class="badge bg-amber-soft text-amber mb-2">' + escapeHtml(b.promo_badge) + '</span>' : '') +
+                '<h5 class="fw-bold text-dark">' + escapeHtml(b.title) + '</h5>' +
+                '<p class="small text-muted mb-2"><i class="bi bi-shop me-1"></i>' + escapeHtml(b.shop_name) + ' • ' + b.created_at + '</p>' +
+                '<div class="d-flex justify-content-between align-items-center">' +
+                  '<span class="small text-muted"><i class="bi bi-chat-dots me-1"></i>' + b.comment_count + ' bình luận</span>' +
+                  '<span class="btn btn-sm btn-outline-dark">Đọc bài <i class="bi bi-arrow-right"></i></span>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+          '</a>';
+        grid.appendChild(col);
+      });
+    } catch (e) { console.error(e); }
+  }
+  const blogCreateForm = document.getElementById('blogCreateForm');
+  if (blogCreateForm) {
+    // Nạp danh sách xe để chọn "Featured Product".
+    apiFetch('{% url "api-products" %}?mine=1').then(function (data) {
+      const select = document.getElementById('newBlogVehicle');
+      (data.results || data).forEach(function (p) {
+        const option = document.createElement('option');
+        option.value = p.id;
+        option.textContent = p.brand + ' ' + p.name + ' (' + p.license_plate + ')';
+        select.appendChild(option);
+      });
+    }).catch(function () {});
+
+    blogCreateForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const msg = document.getElementById('blogCreateMsg');
+      const title = document.getElementById('newBlogTitle').value.trim();
+      const content = document.getElementById('newBlogContent').value.trim();
+      if (!title || !content) {
+        msg.innerHTML = '<span class="text-coral">Vui lòng nhập tiêu đề và nội dung.</span>';
+        return;
+      }
+      const btn = blogCreateForm.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      // FormData -> multipart/form-data (không set Content-Type thủ công).
+      const form = new FormData(blogCreateForm);
+      try {
+        const data = await apiFetch('{% url "api-blog-create" %}', {
+          method: 'POST', body: form
+        });
+        msg.innerHTML = '<span class="text-success fw-semibold">Đăng bài thành công! <a href="/blogs/' + encodeURIComponent(data.blog.slug) + '/">Xem bài →</a></span>';
+        blogCreateForm.reset();
+        loadBlogs();
+      } catch (err) {
+        let text = err.message;
+        if (err.data) { const k = Object.keys(err.data)[0]; if (k && Array.isArray(err.data[k])) text = err.data[k][0]; }
+        msg.innerHTML = '<span class="text-coral">' + escapeHtml(text) + '</span>';
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  }
+
+  loadBlogs();
+</script>
+{% endblock %}

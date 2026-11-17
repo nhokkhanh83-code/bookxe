@@ -1,0 +1,380 @@
+{% extends 'rental/base.html' %}
+{% load static %}
+
+{% block title %}Quản lý cửa hàng - BookXe{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+      <h1 class="fw-extra bx-display-sm mb-1">Bảng điều khiển cửa hàng</h1>
+      <p class="text-muted mb-0">{{ shop.shop_name|default:"Cửa hàng của bạn" }} — Quản lý xe, thương lượng giá, đơn cọc và blog.</p>
+    </div>
+    <a href="/admin/" class="btn btn-dark"><i class="bi bi-gear me-1"></i>Mở trang quản lý</a>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-4"><a href="{% url 'product_list' %}" class="btn btn-lg btn-outline-dark w-100"><i class="bi bi-car-front me-2"></i>Quản lý Xe máy / Ô tô</a></div>
+    <div class="col-md-4"><a href="{% url 'blog_list' %}#blogCreateForm" class="btn btn-lg btn-outline-dark w-100"><i class="bi bi-newspaper me-2"></i>Đăng Blog ưu đãi</a></div>
+    <div class="col-md-4"><a href="{% if shop %}{% url 'shop_detail' shop.slug %}{% else %}#{% endif %}" class="btn btn-lg btn-outline-dark w-100"><i class="bi bi-eye me-2"></i>Xem cửa hàng</a></div>
+  </div>
+
+  <!-- TẠO / CẬP NHẬT CỬA HÀNG (upload ảnh bìa) -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header bg-white fw-bold border-0 pt-3"><i class="bi bi-shop text-primary-blue me-2"></i>Tạo / Cập nhật Thông tin Cửa hàng</div>
+    <div class="card-body p-4">
+      <form id="staffShopForm" enctype="multipart/form-data">
+        <div class="row g-3">
+          <div class="col-md-4"><label class="form-label small fw-semibold">Tên cửa hàng *</label><input class="form-control" name="shop_name" value="{{ shop.shop_name|default:'' }}" required></div>
+          <div class="col-md-3"><label class="form-label small fw-semibold">Khu vực / Thành phố * (do Admin tạo)</label><select class="form-select" name="city_district" id="staffCity" required><option value="{{ shop.city_district|default:'' }}">{{ shop.city_district|default:'-- Chọn thành phố --' }}</option></select></div>
+          <div class="col-md-5"><label class="form-label small fw-semibold">Địa chỉ chi tiết *</label><input class="form-control" name="exact_address" value="{{ shop.exact_address|default:'' }}" required></div>
+          <div class="col-md-3"><label class="form-label small fw-semibold">Hotline</label><input class="form-control" name="hotline" value="{{ shop.hotline|default:'' }}"></div>
+          <div class="col-md-5"><label class="form-label small fw-semibold">Mô tả</label><textarea class="form-control" name="description" rows="2">{{ shop.description|default:'' }}</textarea></div>
+          <div class="col-md-4"><label class="form-label small fw-semibold">Ảnh bìa cửa hàng</label><input type="file" class="form-control" name="banner_image" accept="image/*"></div>
+          <div class="col-12"><button type="submit" class="btn btn-primary-blue btn-sm"><i class="bi bi-save me-1"></i>Lưu cửa hàng</button> <span id="staffShopMsg" class="small ms-2"></span></div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ĐĂNG SẢN PHẨM XE MỚI (upload nhiều ảnh) -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header bg-white fw-bold border-0 pt-3 d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-car-front text-primary-blue me-2"></i>Đăng sản phẩm xe mới</span>
+      <a href="{% url 'product_list' %}" class="btn btn-sm btn-outline-dark">Quản lý sản phẩm →</a>
+    </div>
+    <div class="card-body p-4">
+      <form id="staffProductForm" enctype="multipart/form-data">
+        <div class="row g-3">
+          <div class="col-md-3"><label class="form-label small fw-semibold">Tên xe *</label><input class="form-control" name="name" required placeholder="VD: AirBlade 2026"></div>
+          <div class="col-md-2"><label class="form-label small fw-semibold">Loại xe</label><select class="form-select" name="vehicle_type"><option value="motorbike">Xe máy</option><option value="car">Ô tô</option></select></div>
+          <div class="col-md-2"><label class="form-label small fw-semibold">Hãng xe * (Admin tạo)</label><select class="form-select" name="brand" id="staffBrand" required><option value="">-- Chọn --</option></select></div>
+          <div class="col-md-2"><label class="form-label small fw-semibold">Hãng khác</label><input class="form-control" id="staffBrandOther" placeholder="Gõ nếu không có"></div>
+          <div class="col-md-2"><label class="form-label small fw-semibold">Danh mục (Admin tạo)</label><select class="form-select" name="category" id="staffCategory"><option value="">-- Chọn --</option></select></div>
+          <div class="col-md-2"><label class="form-label small fw-semibold">Biển số *</label><input class="form-control" name="license_plate" required></div>
+          <div class="col-md-2"><label class="form-label small fw-semibold">Năm SX</label><input type="number" class="form-control" name="model_year" value="2026"></div>
+          <div class="col-md-3"><label class="form-label small fw-semibold">Giá thuê/ngày *</label><input type="number" class="form-control" name="base_price_per_day" min="1" required></div>
+          <div class="col-md-3"><label class="form-label small fw-semibold">Giá sàn</label><input type="number" class="form-control" name="min_bargain_price" value="0"></div>
+          <div class="col-md-6"><label class="form-label small fw-semibold">Tình trạng xe</label><textarea class="form-control" name="condition_status" rows="2"></textarea></div>
+          <div class="col-md-6"><label class="form-label small fw-semibold">Hình ảnh xe * (ảnh đầu làm đại diện)</label><input type="file" class="form-control" name="images" accept="image/*" multiple required></div>
+          <div class="col-12"><button type="submit" class="btn btn-dark btn-sm"><i class="bi bi-plus-lg me-1"></i>Đăng xe</button> <span id="staffProductMsg" class="small ms-2"></span></div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ĐĂNG BLOG KÈM ẢNH -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header bg-white fw-bold border-0 pt-3"><i class="bi bi-newspaper text-amber me-2"></i>Đăng Blog giới thiệu cửa hàng / sản phẩm (kèm ảnh)</div>
+    <div class="card-body p-4">
+      <form id="staffBlogForm" enctype="multipart/form-data">
+        <div class="row g-3">
+          <div class="col-md-5"><label class="form-label small fw-semibold">Tiêu đề *</label><input class="form-control" name="title" required></div>
+          <div class="col-md-3"><label class="form-label small fw-semibold">Nhãn ưu đãi</label><input class="form-control" name="promo_badge"></div>
+          <div class="col-md-4"><label class="form-label small fw-semibold">Ảnh bài viết</label><input type="file" class="form-control" name="thumbnail" accept="image/*"></div>
+          <div class="col-md-6"><label class="form-label small fw-semibold">Sản phẩm xe đính kèm</label><select class="form-select" name="featured_vehicle" id="staffBlogVehicle"><option value="">-- Không chọn --</option></select></div>
+          <div class="col-md-6"><label class="form-label small fw-semibold">Nội dung *</label><textarea class="form-control" name="content" rows="2" required></textarea></div>
+          <div class="col-12"><button type="submit" class="btn btn-primary-blue btn-sm"><i class="bi bi-send me-1"></i>Đăng bài</button> <span id="staffBlogMsg" class="small ms-2"></span></div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- THÔNG BÁO HỖ TRỢ TỪ KHÁCH -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header bg-white fw-bold border-0 pt-3"><i class="bi bi-exclamation-triangle text-coral me-2"></i>Thông báo Hỗ trợ &amp; Liên hệ từ Khách hàng</div>
+    <div class="card-body p-3" id="supportList"><div class="text-muted small">Đang tải...</div></div>
+  </div>
+
+  <!-- QUẢN LÝ THƯƠNG LƯỢNG -->
+  <div class="card border-0 shadow-sm rounded-4 mb-4">
+    <div class="card-header bg-white fw-bold border-0 pt-3 d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-chat-dots text-primary-blue me-2"></i>Yêu cầu thương lượng giá</span>
+      <select id="bargainStatusFilter" class="form-select form-select-sm w-auto">
+        <option value="">Tất cả</option>
+        <option value="pending">Chờ duyệt</option>
+        <option value="accepted">Đã đồng ý</option>
+        <option value="countered">Đã báo giá lại</option>
+        <option value="rejected">Đã từ chối</option>
+      </select>
+    </div>
+    <div class="card-body p-3" id="bargainList"><div class="text-muted small">Đang tải...</div></div>
+  </div>
+
+  <!-- QUẢN LÝ ĐƠN HÀNG (HISTORYS) -->
+  <div class="card border-0 shadow-sm rounded-4">
+    <div class="card-header bg-white fw-bold border-0 pt-3"><i class="bi bi-box-seam text-success me-2"></i>Quản lý đơn hàng (Historys)</div>
+    <div class="card-body p-3 table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead class="bg-light-2"><tr><th>Mã đơn</th><th>Khách</th><th>Xe</th><th>Cọc</th><th>Trạng thái</th><th>Giờ giao</th><th>Hành động</th></tr></thead>
+        <tbody id="orderList"><tr><td colspan="7" class="text-muted">Đang tải...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  async function loadBargains() {
+    const status = document.getElementById('bargainStatusFilter').value;
+    try {
+      const data = await apiFetch('/api/bargains/shop/' + (status ? '?status=' + status : ''));
+      const list = data.results || data;
+      const box = document.getElementById('bargainList');
+      if (!list.length) { box.innerHTML = '<div class="text-muted small">Không có yêu cầu nào.</div>'; return; }
+      box.innerHTML = list.map(function (b) {
+        let action = '';
+        if (b.status === 'pending') {
+          action =
+            '<div class="d-flex gap-1 mt-2 flex-wrap">' +
+              '<button class="btn btn-sm btn-success btn-accept" data-id="' + b.id + '"><i class="bi bi-check me-1"></i>Accept</button>' +
+              '<button class="btn btn-sm btn-primary-blue btn-counter" data-id="' + b.id + '" data-price="' + b.offered_price_per_day + '"><i class="bi bi-arrow-repeat me-1"></i>Counter</button>' +
+              '<button class="btn btn-sm btn-outline-coral btn-reject" data-id="' + b.id + '"><i class="bi bi-x me-1"></i>Reject</button>' +
+            '</div>';
+        } else {
+          action = '<div class="mt-2">' + statusBadge(b.status) + (b.counter_price ? ' <span class="small">Giá báo lại: ' + money(b.counter_price) + '</span>' : '') + '</div>';
+        }
+        return '<div class="bx-bargain-item border rounded-3 p-3 mb-2" data-row="' + b.id + '">' +
+          '<div class="d-flex justify-content-between flex-wrap gap-2">' +
+            '<div><strong>' + escapeHtml(b.user_name) + '</strong> muốn thuê <strong>' + escapeHtml(b.vehicle_name) + '</strong> (' + escapeHtml(b.vehicle_plate) + ')' +
+              '<div class="small text-muted mt-1">Đề xuất <strong class="text-primary-blue">' + money(b.offered_price_per_day) + '</strong>/ngày • ' + b.rental_days + ' ngày • ' + escapeHtml(b.customer_type_display) + '</div>' +
+              (b.note ? '<div class="small fst-italic text-muted mt-1">"' + escapeHtml(b.note) + '"</div>' : '') +
+            '</div>' + statusBadge(b.status) +
+          '</div>' + action + '</div>';
+      }).join('');
+
+      bind('.btn-accept', function (btn) { respond(btn.dataset.id, {status: 'accepted'}); });
+      bind('.btn-reject', function (btn) { respond(btn.dataset.id, {status: 'rejected'}); });
+      bind('.btn-counter', function (btn) {
+        const price = prompt('Nhập mức giá báo lại cho khách (VNĐ/ngày):', btn.dataset.price);
+        if (price) respond(btn.dataset.id, {status: 'countered', counter_price: parseInt(price, 10)});
+      });
+    } catch (e) { console.error(e); }
+  }
+
+  function bind(sel, fn) {
+    document.querySelectorAll(sel).forEach(function (btn) { btn.addEventListener('click', function () { fn(btn); }); });
+  }
+
+  function statusBadge(status) {
+    const map = {
+      pending: '<span class="badge bg-warning text-dark">Chờ duyệt</span>',
+      accepted: '<span class="badge bg-success-soft text-success">Đã đồng ý</span>',
+      countered: '<span class="badge bg-primary-blue-soft text-primary-blue">Đã báo giá lại</span>',
+      rejected: '<span class="badge bg-coral-soft text-coral">Đã từ chối</span>'
+    };
+    return map[status] || '';
+  }
+
+  async function respond(id, payload) {
+    try {
+      await apiFetch('/api/bargains/' + id + '/respond/', {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      loadBargains();
+    } catch (e) { alert(e.message); }
+  }
+
+  async function loadOrders() {
+    try {
+      const data = await apiFetch('/api/staff/orders/');
+      const list = data.results || data;
+      const box = document.getElementById('orderList');
+      box.innerHTML = list.length ? list.map(function (o) {
+        let action = '<a href="/orders/' + encodeURIComponent(o.order_code) + '/" class="btn btn-sm btn-outline-dark">Xem</a>';
+        if (o.status === 'pending_deposit') {
+          action =
+            '<button class="btn btn-sm btn-success fw-bold btn-staff-confirm" data-id="' + o.id + '">' +
+              '<i class="bi bi-cash-coin me-1"></i>Xác nhận đã nhận cọc</button>';
+        } else if (o.status === 'confirmed') {
+          action =
+            '<button class="btn btn-sm btn-success fw-bold btn-staff-complete" data-id="' + o.id + '">' +
+              '<i class="bi bi-check2-circle me-1"></i>Hoàn thiện đơn (Đã giao xe)</button>';
+        } else if (o.status === 'completed') {
+          action = '<span class="badge bg-success">Xe đã được giao</span>';
+        }
+        const vehicles = (o.items || []).map(function (it) { return it.vehicle_name; }).join(', ');
+        return '<tr>' +
+          '<td><strong>' + o.order_code + '</strong><br><small class="text-muted">' + escapeHtml(o.pickup_address || '') + '</small></td>' +
+          '<td>' + escapeHtml(o.receiver_name || o.user_name || '') + '<br><small class="text-muted">' + escapeHtml(o.receiver_phone || '') + '</small></td>' +
+          '<td class="small">' + escapeHtml(vehicles) + '</td>' +
+          '<td class="fw-bold text-primary-blue">' + money(o.deposit_paid_amount) + '</td>' +
+          '<td>' + statusBadgeOrder(o.status) + '</td>' +
+          '<td class="small">' + escapeHtml(o.delivery_time_note || '') + '</td>' +
+          '<td>' + action + '</td>' +
+        '</tr>';
+      }).join('') : '<tr><td colspan="7" class="text-muted small">Chưa có đơn đặt cọc nào.</td></tr>';
+
+      bind('.btn-staff-confirm', function (btn) { confirmOrder(btn.dataset.id, false); });
+      bind('.btn-staff-complete', function (btn) { confirmOrder(btn.dataset.id, true); });
+    } catch (e) { console.error(e); }
+  }
+
+  function statusBadgeOrder(status) {
+    const map = {
+      pending_deposit: '<span class="badge bg-warning text-dark">Chờ đặt cọc</span>',
+      confirmed: '<span class="badge bg-primary-blue">Đã xác nhận</span>',
+      completed: '<span class="badge bg-success">Hoàn thành</span>',
+      cancelled: '<span class="badge bg-secondary">Đã hủy</span>'
+    };
+    return map[status] || '';
+  }
+
+  async function confirmOrder(id, complete) {
+    const url = complete
+      ? '/api/orders/' + id + '/complete/'
+      : '/api/orders/' + id + '/confirm-deposit/';
+    try {
+      await apiFetch(url, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({delivery_time_note: 'Giao xe trong vòng 1 - 2 giờ tới'})
+      });
+      loadOrders();
+    } catch (e) { alert(e.message); }
+  }
+
+  const staffShopForm = document.getElementById('staffShopForm');
+  if (staffShopForm) {
+    staffShopForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const msg = document.getElementById('staffShopMsg');
+      msg.textContent = 'Đang lưu...';
+      try {
+        await apiFetch('{% url "api-shop-mine" %}', {method: 'POST', body: new FormData(staffShopForm)});
+        msg.innerHTML = '<span class="text-success fw-semibold">Đã lưu cửa hàng!</span>';
+        setTimeout(function () { window.location.reload(); }, 800);
+      } catch (err) { msg.innerHTML = '<span class="text-coral">' + escapeHtml(err.message) + '</span>'; }
+    });
+  }
+
+  const staffProductForm = document.getElementById('staffProductForm');
+  if (staffProductForm) {
+    staffProductForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const msg = document.getElementById('staffProductMsg');
+      msg.textContent = 'Đang đăng...';
+      try {
+        const formData = new FormData(staffProductForm);
+        const otherBrand = document.getElementById('staffBrandOther').value.trim();
+        if (otherBrand) formData.set('brand', otherBrand);
+        await apiFetch('{% url "api-product-create" %}', {method: 'POST', body: formData});
+        msg.innerHTML = '<span class="text-success fw-semibold">Đăng xe thành công! <a href="/products/">Xem sản phẩm →</a></span>';
+        staffProductForm.reset();
+      } catch (err) { msg.innerHTML = '<span class="text-coral">' + escapeHtml(err.message) + '</span>'; }
+    });
+  }
+
+  // Danh mục do Admin tạo: dùng chung cho cửa hàng & sản phẩm.
+  async function loadCatalog() {
+    try {
+      const c = await apiFetch('{% url "api-catalog" %}');
+      const citySelect = document.getElementById('staffCity');
+      if (citySelect) {
+        const current = citySelect.value;
+        citySelect.innerHTML = '<option value="">-- Chọn thành phố --</option>' +
+          (c.countries || []).map(function (x) { return '<option value="' + escapeHtml(x) + '">' + escapeHtml(x) + '</option>'; }).join('');
+        if (current) citySelect.value = current;
+      }
+      const brand = document.getElementById('staffBrand');
+      if (brand) brand.innerHTML = '<option value="">-- Chọn hãng xe --</option>' +
+        (c.brands || []).map(function (x) { return '<option value="' + escapeHtml(x) + '">' + escapeHtml(x) + '</option>'; }).join('');
+      const cat = document.getElementById('staffCategory');
+      if (cat) cat.innerHTML = '<option value="">-- Chọn danh mục --</option>' +
+        (c.categories || []).map(function (x) { return '<option value="' + escapeHtml(x) + '">' + escapeHtml(x) + '</option>'; }).join('');
+    } catch (e) { console.error(e); }
+
+    try {
+      const products = await apiFetch('{% url "api-products" %}?mine=1');
+      const sel = document.getElementById('staffBlogVehicle');
+      if (sel) (products.results || products).forEach(function (p) {
+        const o = document.createElement('option');
+        o.value = p.id;
+        o.textContent = p.brand + ' ' + p.name + ' (' + p.license_plate + ')';
+        sel.appendChild(o);
+      });
+    } catch (e) { console.error(e); }
+  }
+
+  // Gửi blog kèm ảnh.
+  const staffBlogForm = document.getElementById('staffBlogForm');
+  if (staffBlogForm) {
+    staffBlogForm.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const msg = document.getElementById('staffBlogMsg');
+      msg.textContent = 'Đang đăng...';
+      try {
+        await apiFetch('{% url "api-blog-create" %}', {method: 'POST', body: new FormData(staffBlogForm)});
+        msg.innerHTML = '<span class="text-success fw-semibold">Đăng bài thành công! <a href="/blogs/">Xem blog →</a></span>';
+        staffBlogForm.reset();
+      } catch (err) { msg.innerHTML = '<span class="text-coral">' + escapeHtml(err.message) + '</span>'; }
+    });
+  }
+
+  // Hỗ trợ / sự cố từ khách.
+  async function loadSupport() {
+    const box = document.getElementById('supportList');
+    if (!box) return;
+    try {
+      const list = await apiFetch('{% url "api-contact-shop" %}');
+      box.innerHTML = list.length ? '<div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead class="bg-light-2"><tr><th>Khách</th><th>SĐT</th><th>Xe / Vị trí</th><th>Mô tả &amp; ảnh</th><th>Trạng thái</th><th>Phản hồi</th></tr></thead><tbody>' +
+        list.map(function (t) {
+          const urgent = t.issue_type === 'emergency_breakdown';
+          const rowClass = urgent && t.status === 'pending' ? 'table-danger' : '';
+          let action;
+          if (t.status === 'pending') action = '<button class="btn btn-sm btn-primary-blue btn-support-action" data-id="' + t.id + '" data-status="processing">Xác nhận đang đến hỗ trợ</button>';
+          else if (t.status === 'processing') action = '<button class="btn btn-sm btn-success btn-support-action" data-id="' + t.id + '" data-status="resolved">Đã hỗ trợ xong</button>';
+          else action = '<span class="badge bg-success">Đã xử lý</span>';
+          return '<tr class="' + rowClass + '">' +
+            '<td>' + escapeHtml(t.user_name) + '<br><small class="text-muted">' + escapeHtml(t.issue_type_display) + '</small></td>' +
+            '<td>' + escapeHtml(t.phone || '') + '</td>' +
+            '<td>' + escapeHtml(t.vehicle_name || '') + '<br><small class="text-coral">' + escapeHtml(t.current_location || '') + '</small></td>' +
+            '<td class="small">' + escapeHtml(t.message) + (t.image_url ? '<br><a href="' + t.image_url + '" target="_blank">Xem ảnh</a>' : '') + '</td>' +
+            '<td>' + statusBadgeSupport(t.status) + '<div class="mt-1">' + action + '</div></td>' +
+            '<td><input class="form-control form-control-sm support-reply" data-id="' + t.id + '" value="' + escapeHtml(t.staff_reply || '') + '" placeholder="Tin nhắn phản hồi..."><button class="btn btn-sm btn-outline-dark mt-1 btn-support-reply" data-id="' + t.id + '">Gửi</button></td>' +
+          '</tr>';
+        }).join('') + '</tbody></table></div>' : '<div class="text-muted small">Chưa có yêu cầu hỗ trợ nào.</div>';
+
+      document.querySelectorAll('.btn-support-action').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          await apiFetch('/api/contact/' + btn.dataset.id + '/update/', {
+            method: 'PATCH', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({status: btn.dataset.status})
+          });
+          loadSupport();
+        });
+      });
+      document.querySelectorAll('.btn-support-reply').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+          const input = document.querySelector('.support-reply[data-id="' + btn.dataset.id + '"]');
+          await apiFetch('/api/contact/' + btn.dataset.id + '/update/', {
+            method: 'PATCH', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({staff_reply: input.value})
+          });
+          loadSupport();
+        });
+      });
+      const badge = document.getElementById('supportBadge');
+      if (badge) badge.remove();
+    } catch (e) { console.error(e); }
+  }
+
+  function statusBadgeSupport(s) {
+    if (s === 'pending') return '<span class="badge bg-warning text-dark">Chờ hỗ trợ</span>';
+    if (s === 'processing') return '<span class="badge bg-primary-blue">Đang đến hỗ trợ</span>';
+    return '<span class="badge bg-success">Đã xử lý xong</span>';
+  }
+
+  document.getElementById('bargainStatusFilter').addEventListener('change', loadBargains);
+  loadCatalog();
+  loadSupport();
+  loadBargains();
+  loadOrders();
+  // Cập nhật yêu cầu thương lượng / đơn hàng theo thời gian thực (polling 5s)
+  setInterval(loadBargains, 5000);
+  setInterval(loadOrders, 5000);
+</script>
+{% endblock %}

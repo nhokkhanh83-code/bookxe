@@ -1,0 +1,43 @@
+{% extends 'rental/base.html' %}
+{% load static %}
+
+{% block title %}Đăng ký - BookXe{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-7">
+      <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="card-header bg-dark text-white text-center py-4">
+          <i class="bi bi-person-plus-fill fs-1 text-primary-blue"></i>
+          <h3 class="fw-extra mt-2 mb-0">Tạo tài khoản khách thuê</h3>
+          <small class="text-white-50">Đăng ký để thương lượng giá và đặt cọc xe</small>
+        </div>
+        <div class="card-body p-4">
+          <form method="post">
+            {% csrf_token %}
+            <div class="row g-3">
+              <div class="col-md-6"><label class="form-label small fw-semibold">Tên đăng nhập <span class="text-coral">*</span></label><input type="text" name="username" class="form-control" required></div>
+              <div class="col-md-6"><label class="form-label small fw-semibold">Email <span class="text-coral">*</span></label><input type="email" name="email" class="form-control" required></div>
+              <div class="col-md-6"><label class="form-label small fw-semibold">Họ</label><input type="text" name="first_name" class="form-control"></div>
+              <div class="col-md-6"><label class="form-label small fw-semibold">Tên</label><input type="text" name="last_name" class="form-control"></div>
+              <div class="col-md-6"><label class="form-label small fw-semibold">Số điện thoại</label><input type="tel" name="phone" class="form-control"></div>
+              <div class="col-md-6"><label class="form-label small fw-semibold">Mật khẩu <span class="text-coral">*</span></label><input type="password" name="password" class="form-control" required></div>
+              <div class="col-md-6"><label class="form-label small fw-semibold">Xác nhận mật khẩu <span class="text-coral">*</span></label><input type="password" name="confirm_password" class="form-control" required></div>
+              <div class="col-md-6 d-flex align-items-end">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="is_student" id="isStudent">
+                  <label class="form-check-label small" for="isStudent">Tôi là học sinh / sinh viên <span class="badge bg-amber-soft text-amber">Ưu đãi</span></label>
+                </div>
+              </div>
+            </div>
+            <div class="d-grid mt-4"><button type="submit" class="btn btn-dark btn-lg"><i class="bi bi-person-plus me-1"></i>Đăng ký</button></div>
+          </form>
+          <hr>
+          <p class="text-center small text-muted mb-0">Đã có tài khoản? <a href="{% url 'login' %}" class="fw-semibold">Đăng nhập</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

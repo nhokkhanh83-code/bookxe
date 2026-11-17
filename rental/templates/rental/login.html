@@ -1,0 +1,31 @@
+{% extends 'rental/base.html' %}
+{% load static %}
+
+{% block title %}Đăng nhập - BookXe{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-md-5">
+      <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="card-header bg-dark text-white text-center py-4">
+          <i class="bi bi-car-front-fill fs-1 text-primary-blue"></i>
+          <h3 class="fw-extra mt-2 mb-0">Đăng nhập BookXe</h3>
+          <small class="text-white-50">Chào mừng bạn quay trở lại</small>
+        </div>
+        <div class="card-body p-4">
+          <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}">
+            <div class="mb-3"><label class="form-label small fw-semibold">Tên đăng nhập</label><input type="text" name="username" class="form-control" required autofocus></div>
+            <div class="mb-3"><label class="form-label small fw-semibold">Mật khẩu</label><input type="password" name="password" class="form-control" required></div>
+            <div class="d-grid"><button type="submit" class="btn btn-primary-blue btn-lg"><i class="bi bi-box-arrow-in-right me-1"></i>Đăng nhập</button></div>
+          </form>
+          <hr>
+          <p class="text-center small text-muted mb-0">Chưa có tài khoản? <a href="{% url 'register' %}" class="fw-semibold">Đăng ký ngay</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

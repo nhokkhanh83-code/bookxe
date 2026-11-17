@@ -1,0 +1,204 @@
+{% extends 'rental/base.html' %}
+{% load static %}
+
+{% block title %}Giỏ xe đặt cọc - BookXe{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <h1 class="fw-extra bx-display-sm mb-1"><i class="bi bi-cart3 text-primary-blue me-2"></i>Giỏ xe đặt cọc</h1>
+  <p class="text-muted mb-4">Xem lại xe, chỉnh số ngày thuê bằng nút <strong>[ - ] [ + ]</strong>, đơn giá và tiền cọc cần thanh toán trước khi nhận xe.</p>
+
+  <div id="cartLoading" class="text-muted">Đang tải giỏ hàng...</div>
+  <div id="cartEmpty" class="alert alert-info d-none">
+    Giỏ đặt cọc của bạn đang trống. <a href="{% url 'home' %}#shops" class="fw-semibold">Tìm xe ngay →</a>
+  </div>
+
+  <div class="row g-4" id="cartContent" style="display:none">
+    <div class="col-lg-8" id="cartItems"></div>
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm rounded-4" id="cartSummary">
+        <div class="card-header bg-white fw-bold border-0 pt-3"><i class="bi bi-receipt text-primary-blue me-2"></i>Tóm tắt đơn đặt cọc</div>
+        <div class="card-body">
+          <div class="d-flex justify-content-between mb-2 small"><span class="text-muted">Số xe</span><strong id="summaryCount">0</strong></div>
+          <div class="d-flex justify-content-between mb-2 small"><span class="text-muted">Tổng số ngày thuê</span><strong id="summaryDays">0</strong></div>
+          <div class="d-flex justify-content-between mb-3 small"><span class="text-muted">Tổng tiền thuê</span><strong id="summaryRental">0 đ</strong></div>
+          <hr>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-bold">Tiền đặt cọc (30%)</span>
+            <span class="fw-extra fs-4 text-primary-blue" id="summaryDeposit">0 đ</span>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="fw-bold">Tổng đơn</span>
+            <span class="fw-extra fs-4 text-dark" id="summaryTotal">0 đ</span>
+          </div>
+          <div class="d-grid">
+            <a href="{% url 'checkout' %}" class="btn btn-dark btn-lg"><i class="bi bi-lock-fill me-1"></i>Tiến hành Checkout</a>
+          </div>
+          <p class="text-muted small mt-3 mb-0"><i class="bi bi-shield-check text-success me-1"></i>Thanh toán an toàn qua chuyển khoản QR hoặc khi nhận xe.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const cartItemsBox = document.getElementById('cartItems');
+
+  // Cập nhật toàn bộ tóm tắt từ payload API (count / rental / deposit / tổng đơn).
+  function applyCartSummary(data) {
+    const count = data.count || 0;
+    document.getElementById('summaryCount').textContent = count;
+    document.getElementById('summaryDays').textContent = data.total_days || 0;
+    document.getElementById('summaryRental').textContent = money(data.total_rental_amount);
+    document.getElementById('summaryDeposit').textContent = money(data.total_deposit);
+    document.getElementById('summaryTotal').textContent = money(data.total_amount);
+    if (document.getElementById('cartBadge')) document.getElementById('cartBadge').textContent = count;
+
+    if (!count) {
+      cartItemsBox.innerHTML = '';
+      document.getElementById('cartEmpty').classList.remove('d-none');
+      document.getElementById('cartContent').style.display = 'none';
+      document.getElementById('cartSummary').style.display = 'none';
+    } else {
+      document.getElementById('cartEmpty').classList.add('d-none');
+      document.getElementById('cartContent').style.display = 'flex';
+      document.getElementById('cartSummary').style.display = 'block';
+    }
+  }
+
+  // Cập nhật ngay dòng xe sau khi đổi số ngày (không cần tải lại trang).
+  function applyUpdatedItem(item) {
+    if (!item) return;
+    const card = cartItemsBox.querySelector('.bx-cart-item[data-id="' + item.id + '"]');
+    if (!card) return;
+    const input = card.querySelector('.day-input');
+    input.value = item.total_days;
+    card.querySelector('.btn-day-minus').dataset.days = item.total_days;
+    card.querySelector('.btn-day-plus').dataset.days = item.total_days;
+    card.querySelector('.end-date').textContent = item.end_date;
+    card.querySelector('.line-total').textContent = money(item.line_total);
+    card.querySelector('.line-deposit').textContent = money(item.deposit_amount);
+    card.querySelector('.line-grand').textContent = money(Number(item.line_total) + Number(item.deposit_amount));
+  }
+
+  async function updateDays(itemId, newDays, input) {
+    let days = parseInt(newDays, 10);
+    if (isNaN(days)) days = 1;
+    days = Math.min(60, Math.max(1, days));
+    input.value = days;
+    try {
+      const data = await apiFetch('/api/cart/items/' + itemId + '/update/', {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({total_days: days})
+      });
+      const updated = (data.items || []).find(function (i) { return i.id === itemId; });
+      applyUpdatedItem(updated);
+      applyCartSummary(data);
+    } catch (e) {
+      alert(e.message);
+      loadCart();
+    }
+  }
+
+  async function removeItem(itemId) {
+    // Một lần gọi duy nhất - tránh lỗi ảo "Không tìm thấy xe trong giỏ".
+    try {
+      const data = await apiFetch('/api/cart/items/' + itemId + '/remove/', {method: 'DELETE'});
+      const card = cartItemsBox.querySelector('.bx-cart-item[data-id="' + itemId + '"]');
+      if (card) card.remove();
+      applyCartSummary(data);
+    } catch (e) {
+      alert(e.message);
+    }
+  }
+
+  function bindItemEvents() {
+    document.querySelectorAll('.btn-day-minus').forEach(function (button) {
+      button.addEventListener('click', function () {
+        const id = parseInt(button.dataset.id, 10);
+        const card = button.closest('.bx-cart-item');
+        const input = card.querySelector('.day-input');
+        updateDays(id, (parseInt(input.value, 10) || 1) - 1, input);
+      });
+    });
+    document.querySelectorAll('.btn-day-plus').forEach(function (button) {
+      button.addEventListener('click', function () {
+        const id = parseInt(button.dataset.id, 10);
+        const card = button.closest('.bx-cart-item');
+        const input = card.querySelector('.day-input');
+        updateDays(id, (parseInt(input.value, 10) || 1) + 1, input);
+      });
+    });
+    document.querySelectorAll('.day-input').forEach(function (input) {
+      input.addEventListener('change', function () {
+        updateDays(parseInt(input.dataset.id, 10), input.value, input);
+      });
+    });
+    document.querySelectorAll('.btn-remove').forEach(function (button) {
+      button.addEventListener('click', function () {
+        removeItem(parseInt(button.dataset.id, 10));
+      });
+    });
+  }
+
+  async function loadCart() {
+    try {
+      const data = await apiFetch('{% url "api-cart" %}');
+      document.getElementById('cartLoading').style.display = 'none';
+
+      cartItemsBox.innerHTML = (data.items || []).map(function (item) {
+        const v = item.vehicle;
+        const img = v.primary_image_url
+          ? '<img src="' + v.primary_image_url + '" class="rounded-3" style="width:120px;height:90px;object-fit:cover">'
+          : '<div class="bg-light-2 rounded-3 d-flex align-items-center justify-content-center" style="width:120px;height:90px"><i class="bi bi-car-front fs-2 text-muted"></i></div>';
+        const priceBadge = item.is_bargain_price
+          ? '<span class="badge bg-success-soft text-success">Đã thương lượng: ' + money(item.applied_price_per_day) + '/ngày</span> <span class="text-muted text-decoration-line-through small">' + money(item.original_price_per_day) + '</span>'
+          : '<span class="badge bg-silver-soft text-silver-dark">Giá niêm yết: ' + money(item.applied_price_per_day) + '/ngày</span>';
+        const rowTotal = Number(item.line_total) + Number(item.deposit_amount);
+        return '<div class="card border-0 shadow-sm rounded-4 mb-3 bx-cart-item" data-id="' + item.id + '">' +
+          '<div class="card-body p-3">' +
+            '<div class="row g-3 align-items-center">' +
+              '<div class="col-auto">' + img + '</div>' +
+              '<div class="col">' +
+                '<div class="d-flex justify-content-between flex-wrap gap-2">' +
+                  '<div><h6 class="fw-bold mb-1">' + escapeHtml(v.brand) + ' ' + escapeHtml(v.name) + '</h6>' +
+                    '<div class="small text-muted mb-2"><i class="bi bi-shop me-1"></i>' + escapeHtml(v.shop_name) + ' • ' + escapeHtml(v.license_plate) + '</div>' +
+                    priceBadge + '</div>' +
+                  '<button class="btn btn-sm btn-outline-coral btn-remove" data-id="' + item.id + '" aria-label="Xóa xe khỏi giỏ" title="Xóa xe khỏi giỏ ngay lập tức"><i class="bi bi-trash"></i> Xóa</button>' +
+                '</div>' +
+                '<div class="row g-2 mt-2 small align-items-center">' +
+                  '<div class="col-sm-3"><span class="text-muted">Nhận xe:</span> <strong>' + item.start_date + '</strong></div>' +
+                  '<div class="col-sm-3"><span class="text-muted">Trả xe:</span> <strong class="end-date">' + item.end_date + '</strong></div>' +
+                  '<div class="col-sm-6"><span class="text-muted d-block mb-1">Số ngày:</span>' +
+                    '<div class="input-group input-group-sm" style="max-width:210px">' +
+                      '<button class="btn btn-outline-primary btn-day-minus" data-id="' + item.id + '" data-days="' + item.total_days + '" type="button" aria-label="Giảm số ngày" title="Giảm 1 ngày"><i class="bi bi-dash-lg"></i></button>' +
+                      '<input type="number" class="form-control text-center day-input" min="1" max="60" value="' + item.total_days + '" data-id="' + item.id + '" aria-label="Số ngày thuê" title="Số ngày thuê (1-60)">' +
+                      '<button class="btn btn-outline-primary btn-day-plus" data-id="' + item.id + '" data-days="' + item.total_days + '" type="button" aria-label="Tăng số ngày" title="Tăng 1 ngày"><i class="bi bi-plus-lg"></i></button>' +
+                    '</div>' +
+                  '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="d-flex justify-content-end gap-3 mt-3 pt-2 border-top">' +
+              '<span class="small text-muted">Tạm tính: <strong class="text-dark line-total">' + money(item.line_total) + '</strong></span>' +
+              '<span class="small text-muted">Cọc 30%: <strong class="text-primary-blue line-deposit">' + money(item.deposit_amount) + '</strong></span>' +
+              '<span class="small text-muted">Thành tiền: <strong class="text-dark line-grand">' + money(rowTotal) + '</strong></span>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+
+      bindItemEvents();
+      applyCartSummary(data);
+    } catch (e) {
+      document.getElementById('cartLoading').textContent = 'Lỗi tải giỏ hàng.';
+      console.error(e);
+    }
+  }
+
+  loadCart();
+</script>
+{% endblock %}
