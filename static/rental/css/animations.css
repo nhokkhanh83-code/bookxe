@@ -1,0 +1,261 @@
+/* ==========================================================================
+   BOOKXE — ANIMATION & INTERACTION LAYER
+   Lớp chuyển động bổ sung: reveal khi cuộn, ảnh "sống động", click ripple,
+   lightbox phóng to và các phản hồi tương tác. Kế thừa biến màu từ style.css.
+   ========================================================================== */
+
+/* ---------------- Keyframes ---------------- */
+@keyframes bx-fade-up {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes bx-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-12px); }
+}
+@keyframes bx-float-soft {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-8px) rotate(-1deg); }
+}
+@keyframes bx-shine {
+  from { transform: translateX(-130%) skewX(-20deg); }
+  to   { transform: translateX(130%) skewX(-20deg); }
+}
+@keyframes bx-pop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.22); }
+  70%  { transform: scale(.93); }
+  100% { transform: scale(1); }
+}
+@keyframes bx-ripple {
+  from { transform: scale(0); opacity: .55; }
+  to   { transform: scale(4.2); opacity: 0; }
+}
+@keyframes bx-pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(37, 99, 235, .45); }
+  70%  { box-shadow: 0 0 0 14px rgba(37, 99, 235, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+}
+@keyframes bx-gradient-text {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+@keyframes bx-sparkle {
+  0%, 100% { opacity: .25; transform: scale(.6) rotate(0deg); }
+  50%      { opacity: 1;   transform: scale(1)  rotate(90deg); }
+}
+
+/* ---------------- Scroll reveal ---------------- */
+.bx-reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity .7s cubic-bezier(.22, 1, .36, 1),
+              transform .7s cubic-bezier(.22, 1, .36, 1);
+  transition-delay: var(--bx-d, 0ms);
+  will-change: opacity, transform;
+}
+.bx-reveal.bx-in { opacity: 1; transform: none; }
+.bx-reveal[data-bx-anim="left"]  { transform: translateX(-42px); }
+.bx-reveal[data-bx-anim="right"] { transform: translateX(42px); }
+.bx-reveal[data-bx-anim="zoom"]  { transform: scale(.9); }
+.bx-reveal[data-bx-anim="left"].bx-in,
+.bx-reveal[data-bx-anim="right"].bx-in,
+.bx-reveal[data-bx-anim="zoom"].bx-in { transform: none; }
+
+/* Fallback: nếu observer không chạy, vẫn hiện nội dung sau 3s */
+.bx-reveal.bx-force-show { opacity: 1 !important; transform: none !important; }
+
+/* ---------------- Ảnh sống động: zoom + lướt sáng ---------------- */
+.bx-media-host {
+  position: relative;
+  overflow: hidden;
+}
+.bx-media-host img {
+  transition: transform .75s cubic-bezier(.22, 1, .36, 1), filter .45s ease;
+  backface-visibility: hidden;
+}
+.bx-media-host:hover img {
+  transform: scale(1.12);
+  filter: saturate(1.08);
+}
+.bx-media-host::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, .5) 50%, transparent 65%);
+  transform: translateX(-130%) skewX(-20deg);
+  opacity: 0;
+}
+.bx-media-host:hover::after { animation: bx-shine .9s ease-out; opacity: 1; }
+
+/* Nút phóng to ảnh */
+.bx-zoom-btn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 4;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, .62);
+  color: #fff;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  transform: scale(.65);
+  transition: opacity .25s ease, transform .25s ease, background .2s ease;
+}
+.bx-media-host:hover .bx-zoom-btn { opacity: 1; transform: scale(1); }
+.bx-zoom-btn:hover { background: var(--bx-blue); transform: scale(1.1) !important; }
+@media (hover: none) {
+  .bx-zoom-btn { opacity: .95; transform: scale(1); }
+}
+
+/* Hero: ảnh nổi + thẻ nổi bật chuyển động nhẹ */
+.bx-hero-art > img { animation: bx-float-soft 6s ease-in-out infinite; }
+.bx-float-card { animation: bx-float 4.5s ease-in-out infinite; animation-delay: .6s; }
+.bx-hero-art .bx-sparkle {
+  position: absolute;
+  z-index: 3;
+  color: var(--bx-amber);
+  font-size: 1.4rem;
+  pointer-events: none;
+  animation: bx-sparkle 2.8s ease-in-out infinite;
+}
+
+/* Tiêu đềhero có gradient chạy nhẹ */
+.bx-display .bx-gradient-text {
+  background: linear-gradient(90deg, var(--bx-blue), #7C3AED, var(--bx-blue));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: bx-gradient-text 5s linear infinite;
+}
+
+/* ---------------- Ripple khi click ---------------- */
+.bx-ripple-host { position: relative; overflow: hidden; }
+.bx-ripple {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  transform: scale(0);
+  animation: bx-ripple .6s ease-out forwards;
+}
+
+/* Nhấn nút / thẻ có đàn hồi */
+.bx-clickable:active { transform: scale(.96) !important; transition: transform .1s ease; }
+.bx-pop-anim { animation: bx-pop .5s cubic-bezier(.22, 1, .36, 1); }
+
+/* glowing hover cho thẻ */
+.bx-shop-card:hover, .bx-vehicle-card:hover, .bx-blog-card:hover {
+  border-color: var(--bx-blue) !important;
+  box-shadow: 0 16px 40px rgba(37, 99, 235, .16) !important;
+}
+
+/* ---------------- Lightbox ---------------- */
+.bx-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(15, 23, 42, .92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity .3s ease, visibility .3s ease;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.bx-lightbox.bx-open { opacity: 1; visibility: visible; }
+.bx-lightbox img {
+  max-width: min(92vw, 1200px);
+  max-height: 82vh;
+  border-radius: 14px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .6);
+  transform: scale(.9);
+  transition: transform .35s cubic-bezier(.22, 1, .36, 1);
+}
+.bx-lightbox.bx-open img { transform: scale(1); }
+.bx-lightbox .bx-lb-close,
+.bx-lightbox .bx-lb-nav {
+  position: absolute;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, .14);
+  color: #fff;
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: background .2s ease, transform .2s ease;
+}
+.bx-lightbox .bx-lb-close { top: 22px; right: 26px; }
+.bx-lightbox .bx-lb-nav { top: 50%; transform: translateY(-50%); }
+.bx-lightbox .bx-lb-prev { left: 22px; }
+.bx-lightbox .bx-lb-next { right: 22px; }
+.bx-lightbox .bx-lb-close:hover,
+.bx-lightbox .bx-lb-nav:hover { background: var(--bx-blue); }
+.bx-lightbox .bx-lb-nav:hover { transform: translateY(-50%) scale(1.08); }
+.bx-lightbox .bx-lb-caption {
+  position: absolute;
+  bottom: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, .85);
+  font-size: .9rem;
+  text-align: center;
+  max-width: 90vw;
+}
+body.bx-lb-open { overflow: hidden; }
+
+/* ---------------- Nút về đầu trang ---------------- */
+.bx-to-top {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 1050;
+  width: 46px;
+  height: 46px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--bx-blue);
+  color: #fff;
+  font-size: 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(37, 99, 235, .4);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(16px) scale(.8);
+  transition: opacity .3s ease, transform .3s ease, visibility .3s ease, background .2s ease;
+}
+.bx-to-top.bx-show { opacity: 1; visibility: visible; transform: none; }
+.bx-to-top:hover { background: #1D4ED8; transform: translateY(-4px); }
+
+/* ---------------- Giảm chuyển động ---------------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .bx-reveal { opacity: 1 !important; transform: none !important; }
+}

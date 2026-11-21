@@ -5,7 +5,7 @@ from django.contrib.auth.admin import UserAdmin
 from rental.admin_helpers import BookXeAdminBase, is_admin
 from rental.models import DepositCart, RentalShop
 
-from .models import Country, User
+from .models import Brand, Category, Country, User
 
 
 class DepositCartInline(admin.TabularInline):
@@ -135,13 +135,33 @@ class BookXeUserAdmin(UserAdmin, BookXeAdminBase):
             )
 
 
+@admin.register(Brand)
+class BrandAdmin(BookXeAdminBase):
+    """Bảng Brands - danh mục hãng xe. Chỉ Admin được quản lý."""
+
+    staff_allowed = False
+    list_display = ('id', 'name')
+    search_fields = ('name',)
+    ordering = ('name',)
+
+
+@admin.register(Category)
+class CategoryAdmin(BookXeAdminBase):
+    """Bảng Categorys - danh mục loại xe. Chỉ Admin được quản lý."""
+
+    staff_allowed = False
+    list_display = ('id', 'name')
+    search_fields = ('name',)
+    ordering = ('name',)
+
+
 @admin.register(Country)
 class CountryAdmin(BookXeAdminBase):
     """Quản lý Thành phố / Khu vực - CHỈ ADMIN được thêm/sửa/xóa/sắp xếp."""
 
     staff_allowed = False
-    list_display = ('id', 'name', 'display_order', 'is_active')
-    list_editable = ('display_order', 'is_active')
+    list_display = ('id', 'name', 'is_active')
+    list_editable = ('is_active',)
     list_filter = ('is_active',)
     search_fields = ('name',)
-    ordering = ('display_order', 'name')
+    ordering = ('name',)

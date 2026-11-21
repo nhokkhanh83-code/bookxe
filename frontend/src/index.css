@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   BookXe RWA Vault — Custom Styles
+   Institutional Fintech + Automotive Showroom Palette
+   ============================================================ */
+
+@layer base {
+  * {
+    @apply antialiased;
+  }
+  body {
+    background-color: #f8fafc;
+    color: #0f172a;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+}
+
+/* Glassmorphism card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.03);
+}
+
+/* Animated pulse for real-time yield counter */
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px rgba(16, 185, 129, 0.5); }
+  50% { opacity: 0.6; box-shadow: 0 0 12px rgba(16, 185, 129, 0.7); }
+}
+
+/* Progress bar gradient */
+.progress-bar {
+  background: linear-gradient(90deg, #34d399, #10b981);
+  border-radius: 6px;
+  transition: width 0.5s ease;
+}
+
+/* Input styles */
+.input-styled {
+  @apply w-full px-4 py-3 rounded-lg border border-gray-300 bg-white text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all;
+}
+
+.input-styled::placeholder {
+  @apply text-gray-400;
+}
+
+/* Badge styles */
+.badge-emerald {
+  @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200;
+}
+
+.badge-blue {
+  @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200;
+}
+
+/* Vehicle card */
+.vehicle-card {
+  @apply glass-card p-5 rounded-xl transition-all duration-300 hover:shadow-md hover:-translate-y-0.5;
+}
+
+/* Transaction history item */
+.tx-item {
+  @apply flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0;
+}
+
+/* Number formatting */
+.number-mono {
+  font-variant-numeric: tabular-nums;
+  font-family: "JetBrains Mono", "Consolas", monospace;
+}

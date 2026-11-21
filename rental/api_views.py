@@ -27,7 +27,7 @@ from .serializers import (
     PriceBargainSerializer, RentalShopSerializer, ReviewSerializer,
     UserRoleUpdateSerializer, VehicleDetailSerializer, VehicleListSerializer,
 )
-from .utils import generate_booking_qr, send_order_confirmation_email
+from .utils import send_order_confirmation_email
 
 
 def _money(value):
@@ -400,12 +400,18 @@ class CheckoutAPIView(APIView):
                         was_bargain_price=i.is_bargain_price,
                     )
 
-                # QR và email chỉ là bước phụ: lỗi/chậm cũng KHÔNG được làm đơn hàng fail.
+                # VietQR URL và email chỉ là bước phụ: lỗi/chậm cũng KHÔNG được làm đơn hàng fail.
+                # generate_booking_qr() bị xóa - chỉ trả về URL ảnh VietQR từ remote.
+                # Mã QR sẽ được load từ VietQR URL trên giao diện web và email.
                 try:
-                    generate_booking_qr(order)
+                    from rental.utils import build_vietqr_url
+                    _vietqr_url = build_vietqr_url(
+                        amount=int(order.deposit_paid_amount),
+                        note=order.order_code,
+                    )
                 except Exception as exc:
                     logging.getLogger(__name__).exception(
-                        'Tạo QR thất bại cho đơn %s: %s', order.order_code, exc,
+                        'Tạo VietQR URL thất bại cho đơn %s: %s', order.order_code, exc,
                     )
 
                 try:
@@ -1076,30 +1082,72 @@ def _contact_payload(item):
 
 
 class ContactCreateAPIView(APIView):
-    """Khách gửi liên hệ / báo sự cố (chấp nhận multipart/form-data + ảnh)."""
+    """Khách gửi liên hệ / báo sự cố (chấp nhận multipart/form-data + ảnh).
+
+    Các lưu ý quan trọng:
+    - Dùng request.data.get() với default '' cho tất cả trường để tránh None.
+    - vehicle: chỉ tìm nếu gửi non-empty string; tìm theo pk. Nếu tìm không thấy -> vẫn save (NOT NULL sai).
+    - order: tìm theo order_code hoặc order_id; nếu không tìm thấy -> vẫn save, không báo lỗi.
+    - phone: nếu trống, tự lấy từ user.phone.
+    - issue_type: nếu không trong choices, dùng OTHER.
+    """
 
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
-        shop_id = request.data.get('shop') or request.data.get('shop_id')
+        # --- Lấy shop_id (required) ---
+        shop_id = str(request.data.get('shop') or request.data.get('shop_id') or '').strip()
         message = (request.data.get('message') or '').strip()
-        if not shop_id or not message:
-            return Response({'detail': 'Vui lòng chọn cửa hàng và nhập nội dung hỗ trợ.'},
+        if not shop_id:
+            return Response({'detail': 'Vui lòng chọn cửa hàng.'},
                             status=status.HTTP_400_BAD_REQUEST)
-        if not RentalShop.objects.filter(pk=shop_id).exists():
+        shop_exists = RentalShop.objects.filter(pk=shop_id).exists()
+        if not shop_exists:
             return Response({'detail': 'Không tìm thấy cửa hàng.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        item = ContactSupport.objects.create(
-            user=request.user,
-            shop_id=shop_id,
-            vehicle_id=request.data.get('vehicle') or None,
-            order_id=request.data.get('order') or None,
-            issue_type=request.data.get('issue_type') or ContactSupport.IssueType.OTHER,
-            current_location=request.data.get('current_location', '').strip(),
-            phone=request.data.get('phone', '').strip(),
-            message=message,
-            image=request.FILES.get('image'),
-        )
+        # --- Lấy vehicle (optional, nullable FK) ---
+        vehicle_id_str = str(request.data.get('vehicle') or '').strip()
+        vehicle = None
+        if vehicle_id_str:
+            vehicle = Vehicle.objects.filter(pk=vehicle_id_str).first()
+            # Nếu user chọn xe không khớp với cửa hàng này, vẫn chỉ dùng nếu tồn tại
+
+        # --- Lấy order (optional, nullable FK) ---
+        order_id = None
+        order_code_str = str(request.data.get('order') or request.data.get('order_code') or '').strip()
+        if order_code_str:
+            booking = BookingOrder.objects.filter(order_code=order_code_str).first()
+            if booking:
+                order_id = booking.id
+
+        # --- Issue type (default to OTHER if invalid) ---
+        issue_type = str(request.data.get('issue_type') or '').strip()
+        valid_issue_types = {v for v, _ in ContactSupport.IssueType.choices}
+        if issue_type not in valid_issue_types:
+            issue_type = ContactSupport.IssueType.OTHER
+
+        # --- Phone: auto-fill from user if empty ---
+        phone = str(request.data.get('phone') or '').strip()
+        if not phone and request.user.is_authenticated:
+            phone = request.user.phone or ''
+
+        # --- Create ContactSupport ---
+        try:
+            item = ContactSupport.objects.create(
+                user=request.user,
+                shop_id=shop_id,
+                vehicle_id=vehicle.pk if vehicle else None,
+                order_id=order_id,
+                issue_type=issue_type,
+                current_location=str(request.data.get('current_location') or '').strip(),
+                phone=phone,
+                message=message,
+                image=request.FILES.get('image'),
+            )
+        except Exception as exc:
+            return Response({'detail': f'Có lỗi xảy ra khi lưu yêu cầu: {exc}'},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         return Response(
             {'detail': 'Đã gửi yêu cầu hỗ trợ!', 'ticket': _contact_payload(item)},
             status=status.HTTP_201_CREATED,

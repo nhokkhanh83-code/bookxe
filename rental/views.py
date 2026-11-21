@@ -1,9 +1,19 @@
 """Template (HTML) views for the BookXe storefront & dashboards."""
+from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth import (
+    authenticate, login, logout, update_session_auth_hash,
+)
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import SetPasswordForm
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
+from django.urls import reverse
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 
 from .models import (
     BookingOrder, ContactSupport, Country, RentalShop, ReviewComment,
@@ -123,9 +133,14 @@ def checkout_view(request):
         or request.GET.get('receiver_name', '').strip()
         or request.user.get_full_name()
     )
+    from rental.utils import get_bank_info_display
     return render(request, 'rental/checkout.html', {
         'cart': cart,
         'receiver_name': receiver_name,
+        'bank_info_display': get_bank_info_display(),
+        'bank_name': settings.BOOKXE_BANK_NAME,
+        'bank_account': settings.BOOKXE_BANK_ACCOUNT,
+        'bank_holder': settings.BOOKXE_BANK_HOLDER,
     })
 
 
@@ -138,7 +153,15 @@ def order_confirmation_view(request, order_code):
     if order.user_id != request.user.id and request.user.role != 'admin':
         messages.error(request, 'Bạn không có quyền xem đơn hàng này.')
         return redirect('home')
-    return render(request, 'rental/order_confirmation.html', {'order': order})
+    from rental.utils import build_vietqr_url, get_bank_info_display
+    return render(request, 'rental/order_confirmation.html', {
+        'order': order,
+        'vietqr_url': build_vietqr_url(
+            amount=int(order.deposit_paid_amount),
+            note=order.order_code,
+        ),
+        'bank_info_display': get_bank_info_display(),
+    })
 
 
 def login_view(request):
@@ -344,3 +367,83 @@ def profile_view(request):
         messages.success(request, 'Cập nhật thông tin cá nhân (Update Profile) thành công!')
         return redirect('profile')
     return render(request, 'rental/profile.html', {'profile_user': user})
+
+
+# ============================================================
+# Password Reset Views (Gmail SMTP)
+# ============================================================
+
+def password_reset_request_view(request):
+    """Form nhập Email để nhận link/OTP khôi phục mật khẩu (Gửi Email)."""
+    if request.method == 'POST':
+        email = request.POST.get('email', '').strip().lower()
+        if not email:
+            messages.error(request, 'Vui lòng nhập địa chỉ Email.')
+            return redirect('password_reset')
+
+        user = User.objects.filter(email__iexact=email).first()
+
+        if user is not None and user.is_active:
+            # Gửi email với link đặt lại mật khẩu
+            try:
+                token = default_token_generator.make_token(user)
+                uid = urlsafe_base64_encode(force_bytes(user.pk))
+                reset_url = f'http://127.0.0.1:8000{reverse("password_reset_confirm", kwargs={"uidb64": uid, "token": token})}'
+
+                html_message = render_to_string('rental/emails/password_reset_email.html', {
+                    'user': user,
+                    'reset_url': reset_url,
+                })
+
+                send_mail(
+                    subject='Yêu cầu khôi phục mật khẩu BookXe',
+                    message='',
+                    from_email=None,  # Dùng EMAIL_HOST_USER trong settings
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                    html_message=html_message,
+                )
+            except Exception as e:
+                # Không để lỗi gửi email làm sập trang - vẫn báo thành công (bảo mật thông tin)
+                pass
+        # Không tiết lộ email tồn tại — tránh rò rỉ thông tin
+        messages.success(request, 'Nếu email bạn cung cấp có tồn tại trong hệ thống BookXe, bạn sẽ nhận được email khôi phục mật khẩu trong vài phút tới. Vui lòng kiểm tra hộp thư và thư rác (Spam).')
+        return redirect('password_reset_done')
+
+    return render(request, 'rental/password_reset.html', {})
+
+
+def password_reset_done_view(request):
+    """Thông báo: Đã gửi email khôi phục."""
+    return render(request, 'rental/password_reset_done.html', {})
+
+
+def password_reset_confirm_view(request, uidb64, token):
+    """Form nhập mật khẩu mới + xác nhận."""
+    try:
+        uid = force_str(urlsafe_base64_decode(uidb64))
+        user = User.objects.get(pk=uid)
+    except (User.DoesNotExist, ValueError, OverflowError, TypeError):
+        user = None
+
+    valid_link = user is not None and default_token_generator.check_token(user, token)
+
+    if not valid_link:
+        messages.error(request, 'Đường link khôi phục mật khẩu này đã hết hạn hoặc không hợp lệ. Vui lòng thử lại bằng cách yêu cầu khôi phục mật khẩu mới.')
+        return redirect('password_reset')
+
+    if request.method == 'POST':
+        form = SetPasswordForm(user, request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Mật khẩu của bạn đã được đặt lại thành công. Bạn có thể đăng nhập ngay bây giờ!')
+            return redirect('password_reset_complete')
+    else:
+        form = SetPasswordForm(user)
+
+    return render(request, 'rental/password_reset_confirm.html', {'form': form})
+
+
+def password_reset_complete_view(request):
+    """Thông báo: Đã đổi mật khẩu thành công."""
+    return render(request, 'rental/password_reset_complete.html', {})

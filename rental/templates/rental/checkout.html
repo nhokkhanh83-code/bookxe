@@ -64,12 +64,13 @@
         <div class="card-body p-4">
           <h6 class="fw-bold"><i class="bi bi-info-circle text-primary-blue me-1"></i>Sau khi xác nhận</h6>
           <ol class="small text-white-50 mb-0">
-            <li class="mb-1">Hệ thống tạo đơn hàng và mã QR chứa mã đơn + thông tin chuyển khoản.</li>
+            <li class="mb-1">Hệ thống tạo đơn hàng và tạo mã QR VietQR TPBank chứa mã đơn + thông tin chuyển khoản.</li>
             <li class="mb-1">Mã QR hiển thị ngay trên trình duyệt để bạn quét/lưu lại.</li>
             <li>Email xác nhận kèm mã QR được gửi tới {{ user.email }}.</li>
           </ol>
           <hr class="border-secondary">
-          <p class="small mb-0">Tài khoản nhận tiền: <strong class="text-white">{{ bank_holder }}</strong> - {{ bank_name }} - <strong class="text-white">{{ bank_account }}</strong></p>
+          <p class="small mb-0"><strong class="text-white">Ngân hàng nhận tiền đặt cọc:</strong></p>
+          <p class="small mb-0 text-white-50">{{ bank_info_display }}</p>
         </div>
       </div>
     </div>

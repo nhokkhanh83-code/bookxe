@@ -28,4 +28,10 @@ urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('register/', views.register_view, name='register'),
     path('logout/', views.logout_view, name='logout'),
+
+    # 5. Password Reset (Gmail SMTP)
+    path('password-reset/', views.password_reset_request_view, name='password_reset'),
+    path('password-reset/done/', views.password_reset_done_view, name='password_reset_done'),
+    path('reset/<uidb64>/<token>/', views.password_reset_confirm_view, name='password_reset_confirm'),
+    path('reset/done/', views.password_reset_complete_view, name='password_reset_complete'),
 ]

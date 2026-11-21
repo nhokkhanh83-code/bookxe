@@ -1,21 +1,55 @@
-"""Tiện ích tạo mã QR và gửi email xác nhận đơn đặt coche xe."""
-import io
+"""Tiện ích liên kết VietQR và gửi email xác nhận đơn đặt xe."""
 import logging
+from urllib.parse import quote_plus
 
-import qrcode
 from django.conf import settings
-from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
-from email.mime.image import MIMEImage
 from email.utils import make_msgid
 
 logger = logging.getLogger(__name__)
 
 
+# ---------------------------------------------------------------------------
+# URLs VietQR TPBank (Ngân hàng: TPBank - STK: 00003771572 - Chủ TK: NGO DINH BAO KHANH)
+# ---------------------------------------------------------------------------
+
+VETQR_BASE = 'https://img.vietqr.io/image/TPB-00003771572-compact2.png'
+VETQR_ACCOUNT_NAME = 'NGO%20DINH%20BAO%20KHANH'
+
+# Mã thành đại điểm mặc định khi gửi email
+def build_vietqr_url(amount=None, note=None):
+    """
+    Sinh đường link ảnh VietQR TPBank.
+    
+    Args:
+        amount: Số tiền (số nguyên, VD: 60000) hoặc None nếu chỉ hiển thị thông tin
+        note: Nội dung chuyển khoản (mã đơn)
+    Returns:
+        str: URL ảnh VietQR có thể dùng trực tiếp trong <img src="...">
+    """
+    params = []
+    if amount:
+        params.append(f'amount={int(amount)}')
+    if note:
+        params.append(f'addInfo={quote_plus(note)}')
+    params.append(f'accountName={VETQR_ACCOUNT_NAME}')
+    
+    if params:
+        return f'{VETQR_BASE}?{"&".join(params)}'
+    return f'{VETQR_BASE}?accountName={VETQR_ACCOUNT_NAME}'
+
+
+def get_bank_info_display():
+    """Chuỗi thông tin ngân hàng hiển thị rõ ràng."""
+    return f"Ngân hàng: {settings.BOOKXE_BANK_NAME} - STK: {settings.BOOKXE_BANK_ACCOUNT} - Chủ TK: {settings.BOOKXE_BANK_HOLDER}"
+
+
 def build_qr_payload(order):
-    """Nội dung được mã hoá trong mã QR thanh toán / nhận xe."""
+    """
+    Nội dung được mã hoá trong mã QR thanh toán / nhận xe.
+    Dùng cho QR trên web/App nếu cần (VN-QR format).
+    """
     return (
         f'BOOKXE|ORDER:{order.order_code}'
         f'|SHOP:{order.shop.shop_name}'
@@ -28,40 +62,41 @@ def build_qr_payload(order):
 
 
 def generate_booking_qr(order):
-    """Sinh ảnh QR cho đơn đặt cọc, lưu vào MEDIA_ROOT/qrcodes và gán vào order."""
-    qr = qrcode.QRCode(
-        version=None,
-        error_correction=qrcode.constants.ERROR_CORRECT_H,
-        box_size=10,
-        border=4,
+    """
+    Trả về đường link ảnh VietQR TPBank cho đơn đặt cọc.
+    
+    - Ảnh được tải từ VietQR khi trình duyệt hiển thị (không cần lưu vào MEDIA_ROOT)
+    - VN-QR format nếu cần quét QR theo chuẩn VN
+    
+    Returns:
+        str: URL ảnh VietQR (luôn hợp lệ, trả về URL rỗng nếu không có)
+    """
+    return build_vietqr_url(
+        amount=int(order.deposit_paid_amount),
+        note=order.order_code,
     )
-    qr.add_data(build_qr_payload(order))
-    qr.make(fit=True)
-
-    image = qr.make_image(fill_color='#0F172A', back_color='#FFFFFF').convert('RGB')
-    buffer = io.BytesIO()
-    image.save(buffer, format='PNG')
-
-    # FileField sẽ tự động thêm upload_to='qrcodes/' -> chỉ truyền tên file.
-    filename = f'{order.order_code}.png'
-    storage_path = f'qrcodes/{filename}'
-    if default_storage.exists(storage_path):
-        default_storage.delete(storage_path)
-
-    order.qr_code_image.save(filename, ContentFile(buffer.getvalue()), save=False)
-    order.save(update_fields=['qr_code_image'])
-    return order.qr_code_image.url
 
 
 def send_order_confirmation_email(order, user):
-    """Gửi HTML email kèm mã QR về cho khách hàng. Trả về True/False."""
+    """
+    Gửi HTML email kèm mã QR về cho khách hàng.
+    Trả về True/False.
+    
+    Dùng VietQR URL trực tiếp trong email (nhúng ảnh từ img.vietqr.io).
+    """
     subject = f'[{order.order_code}] Xác nhận đặt cọc xe tại BookXe'
+    vietqr_url = build_vietqr_url(
+        amount=int(order.deposit_paid_amount),
+        note=order.order_code,
+    )
     context = {
         'order': order,
         'user': user,
+        'vietqr_url': vietqr_url,
         'bank_name': settings.BOOKXE_BANK_NAME,
         'bank_account': settings.BOOKXE_BANK_ACCOUNT,
         'bank_holder': settings.BOOKXE_BANK_HOLDER,
+        'bank_info_display': get_bank_info_display(),
     }
 
     text_body = (
@@ -72,7 +107,9 @@ def send_order_confirmation_email(order, user):
         f'Cửa hàng: {order.shop.shop_name}.\n'
         f'Địa chỉ nhận xe: {order.pickup_address}.\n'
         f'SĐT liên hệ: {order.receiver_phone}.\n\n'
-        f'Vui lòng xuất trình mã QR đính kèm khi nhận xe. Cảm ơn bạn đã dùng BookXe!'
+        f'Vui lòng xuất trình mã QR đính kèm khi nhận xe.\n\n'
+        f'Thông tin chuyển khoản: {get_bank_info_display()}\n\n'
+        f'Cảm ơn bạn đã dùng BookXe!'
     )
     html_body = render_to_string('emails/order_confirmation.html', context)
 
@@ -83,26 +120,6 @@ def send_order_confirmation_email(order, user):
         to=[user.email],
     )
     email.attach_alternative(html_body, 'text/html')
-
-    if order.qr_code_image and default_storage.exists(order.qr_code_image.name):
-        try:
-            with default_storage.open(order.qr_code_image.name, 'rb') as fh:
-                qr_bytes = fh.read()
-
-            qr_inline = MIMEImage(qr_bytes, _subtype='png')
-            cid = make_msgid('bookingqr')[1:-1]
-            qr_inline.add_header('Content-ID', f'<{cid}>')
-            qr_inline.add_header('Content-Disposition', 'inline', filename='QR_Nhan_Xe.png')
-            email.attach(qr_inline)
-
-            # Đính kèm thêm để khách có thể lưu lại / in ra.
-            email.attach('QR_Nhan_Xe.png', qr_bytes, 'image/png')
-
-            # Chèn cid thực tế vào HTML (template dùng placeholder {{ qr_cid }}).
-            html_body = html_body.replace('cid:booking_qr', f'cid:{cid}')
-            email.alternatives = [(html_body, 'text/html')]
-        except Exception:
-            logger.exception('Không thể đính kèm mã QR vào email đơn %s', order.order_code)
 
     try:
         email.send(fail_silently=False)

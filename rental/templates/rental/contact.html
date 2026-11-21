@@ -6,7 +6,7 @@
 {% block content %}
 <div class="container py-5">
   <div class="mb-4">
-    <h1 class="fw-extra bx-display-sm mb-1"><i class="bi bi-life-preserver text-coral me-2"></i>Liên hệ / Báo sự cố xe hư</h1>
+    <h1 class="fw-extra bx-display-sm mb-1"><i class="bi bi-life-preserver text-coral me-2"></i>Liên hệ / Báo sự cổ xe hư</h1>
     <p class="text-muted mb-0">Gửi yêu cầu cho cửa hàng. Với sự cố khẩn cấp, Staff sẽ đến hỗ trợ ngay tại vị trí của bạn.</p>
   </div>
 
@@ -59,7 +59,7 @@
                 <label class="form-label small fw-semibold">Ảnh chụp tình trạng xe hư (nếu có)</label>
                 <input type="file" class="form-control" name="image" accept="image/*">
               </div>
-              <div class="col-12"><button type="submit" class="btn btn-coral text-white"><i class="bi bi-send me-1"></i>Gửi yêu cầu hỗ trợ</button> <span id="contactMsg" class="small ms-2"></span></div>
+              <div class="col-12"><button type="submit" class="btn btn-coral text-white contact-submit-btn"><i class="bi bi-send me-1"></i>Gửi yêu cầu hỗ trợ</button> <span id="contactMsg" class="small ms-2"></span></div>
             </div>
           </form>
         </div>
@@ -83,6 +83,23 @@
     if (s === 'processing') return '<span class="badge bg-primary-blue">Staff đang đến hỗ trợ</span>';
     return '<span class="badge bg-success">Đã xử lý xong</span>';
   }
+
+  // Validate: check shop is selected
+  document.getElementById('contactForm').addEventListener('submit', function(e) {
+    const shopVal = document.getElementById('cShop').value;
+    const msgInput = document.getElementById('cMessage');
+    const btn = this.querySelector('button[type="submit"]');
+    if (!shopVal) {
+      alert('Vui lòng chọn cửa hàng cần liên hệ!');
+      e.preventDefault();
+      return;
+    }
+    if (!msgInput.value.trim()) {
+      alert('Vui lòng nhập mô tả chi tiết!');
+      e.preventDefault();
+      return;
+    }
+  });
 
   async function loadMyTickets() {
     try {
@@ -108,13 +125,32 @@
     const msg = document.getElementById('contactMsg');
     const btn = this.querySelector('button[type="submit"]');
     btn.disabled = true;
+    btn.classList.add('disabled');
     try {
-      await apiFetch('{% url "api-contact-create" %}', {method: 'POST', body: new FormData(this)});
-      msg.innerHTML = '<span class="text-success fw-semibold">Đã gửi yêu cầu! Staff sẽ phản hồi sớm.</span>';
-      this.reset();
-      loadMyTickets();
-    } catch (err) { msg.innerHTML = '<span class="text-coral">' + escapeHtml(err.message) + '</span>'; }
-    finally { btn.disabled = false; }
+      // Use apiFetch (handles CSRF + X-Requested-With) with FormData
+      const formData = new FormData(this);
+      const data = await apiFetch('{% url "api-contact-create" %}', {
+        method: 'POST',
+        body: formData,
+      });
+      if (data) {
+        msg.innerHTML = '<span class="text-success fw-semibold">✓ Đã gửi yêu cầu hỗ trợ thành công! Staff sẽ liên hệ lại ngay.</span>';
+        this.reset();
+        loadMyTickets();
+      }
+    } catch (err) {
+      // err.message is already set by apiFetch with detail from the API
+      let msgText = err.message || 'Không thể gửi yêu cầu. Vui lòng thử lại.';
+      if (Array.isArray(err.data)) {
+        msgText = err.data.map(d => d.join(': ')).join(', ');
+      } else if (err.data && err.data.detail) {
+        msgText = err.data.detail;
+      }
+      msg.innerHTML = '<span class="text-coral fw-semibold">✗ ' + escapeHtml(msgText) + '</span>';
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('disabled');
+    }
   });
 
   loadMyTickets();

@@ -13,19 +13,18 @@
   </div>
 
   <div class="row g-4 justify-content-center">
-    <!-- QR -->
+    <!-- QR - VietQR TPBank -->
     <div class="col-lg-4">
       <div class="card border-0 shadow-lg rounded-4 text-center p-4">
         <h5 class="fw-bold mb-3"><i class="bi bi-qr-code text-primary-blue me-2"></i>Mã QR nhận xe</h5>
-        {% if order.qr_code_image %}
-          <img src="{{ order.qr_code_image.url }}" alt="QR code" class="bx-qr-img img-fluid rounded-3 mb-3">
-          <a href="{{ order.qr_code_image.url }}" download class="btn btn-outline-dark btn-sm"><i class="bi bi-download me-1"></i>Tải mã QR</a>
-        {% else %}
-          <div class="alert alert-warning">Mã QR đang được tạo...</div>
-        {% endif %}
+        <img src="{{ vietqr_url }}" alt="QR code - TPBank 00003771572" class="bx-qr-img img-fluid rounded-3 mb-3">
+        <a href="{{ vietqr_url }}" download class="btn btn-outline-dark btn-sm"><i class="bi bi-download me-1"></i>Tải mã QR</a>
+        <div class="alert alert-info mt-3 mb-0 small">
+          <strong><i class="bi bi-bank me-1"></i>{{ bank_info_display }}</strong>
+        </div>
         <hr>
         <div class="small text-muted mb-1">Quét mã hoặc xuất trình khi nhận xe</div>
-        <div class="small">Ngân hàng: <strong>{{ bank_holder }}</strong> - {{ bank_name }} - <strong>{{ bank_account }}</strong></div>
+        <div class="small text-muted">Số tiền đặt cọc: <strong class="text-primary-blue">{{ order.deposit_paid_amount|floatformat:0 }} đ</strong></div>
       </div>
     </div>
 
@@ -51,7 +50,7 @@
           {% if order.status == 'pending_deposit' %}
             <div class="alert alert-warning border-0 rounded-4 mb-3">
               <div class="fw-bold mb-1"><i class="bi bi-clock-history me-1"></i>Chờ bạn chuyển khoản đặt cọc</div>
-              <div class="small mb-3">Vui lòng quét mã QR ở bên trái để chuyển khoản, sau đó bấm xác nhận để cửa hàng chuẩn bị xe.</div>
+              <div class="small mb-3">Vui lòng chuyển khoản về tài khoản TPBank 00003771572, nội dung chuyển khoản: <strong>{{ order.order_code }}</strong>. Sau đó bấm xác nhận để cửa hàng chuẩn bị xe.</div>
               <button type="button" class="btn btn-success btn-lg fw-bold w-100" id="btnConfirmDeposit" data-order-id="{{ order.id }}">
                 <i class="bi bi-check2-circle me-2"></i>Tôi đã chuyển khoản đặt cọc (Xác nhận OK)
               </button>
@@ -99,7 +98,7 @@
       <div class="d-flex gap-2">
         <a href="{% url 'home' %}" class="btn btn-outline-dark"><i class="bi bi-house me-1"></i>Về trang chủ</a>
         <a href="{% url 'dashboard' %}" class="btn btn-primary-blue"><i class="bi bi-speedometer2 me-1"></i>Xem đơn của tôi</a>
-        <a href="/contact/?shop={{ order.shop_id }}&amp;order={{ order.order_code }}" class="btn btn-outline-coral"><i class="bi bi-exclamation-triangle me-1"></i>Báo sự cố xe hư</a>
+        <a href="/contact/?shop={{ order.shop_id }}&amp;order={{ order.order_code }}" class="btn btn-outline-coral"><i class="bi bi-exclamation-triangle me-1"></i>Báo sự cổ xe hư</a>
       </div>
     </div>
   </div>

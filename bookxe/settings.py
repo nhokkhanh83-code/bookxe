@@ -3,17 +3,20 @@ Django settings for the BookXe multi-vendor vehicle rental marketplace.
 """
 import os
 from pathlib import Path
+from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # ---------------------------------------------------------------------------
 # Security / debug
 # ---------------------------------------------------------------------------
-SECRET_KEY = 'django-insecure-bookxe-*-rental-*-marketplace-*-2026-*-dev-key'
+# SECRET_KEY: Đọc từ .env (BẮT BUỘC cho production). Fallback cho dev.
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-dev-only-change-me-in-production')
 
-DEBUG = True
+# DEBUG: Đọc từ .env, mặc định True cho dễ test
+DEBUG = config('DEBUG', default='True', cast=lambda x: x.lower() in ('true', '1', 'yes'))
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '*']
+ALLOWED_HOSTS = [h.strip() for h in config('ALLOWED_HOSTS', default='127.0.0.1,localhost').split(',') if h.strip()]
 
 # ---------------------------------------------------------------------------
 # Applications
@@ -74,11 +77,11 @@ ASGI_APPLICATION = 'bookxe.asgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'bookxe',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': '127.0.0.1',
-        'PORT': '3306',
+        'NAME': config('DB_NAME', default='bookxe'),
+        'USER': config('DB_USER', default='root'),
+        'PASSWORD': config('DB_PASSWORD', default=''),
+        'HOST': config('DB_HOST', default='127.0.0.1'),
+        'PORT': config('DB_PORT', default='3306'),
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
             'charset': 'utf8mb4',
@@ -150,19 +153,19 @@ REST_FRAMEWORK = {
 # Gmail SMTP - email xac nhan don thue xe
 # ---------------------------------------------------------------------------
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'nhokkhanh83@gmail.com'
-EMAIL_HOST_PASSWORD = 'fmrgvgavamlluhny'  # Mat khau ung dung Google (ban goc co dau cach: 'fmrg vgav amll uhny')
-DEFAULT_FROM_EMAIL = 'BookXe Rental <nhokkhanh83@gmail.com>'
+EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
+EMAIL_PORT = int(config('EMAIL_PORT', default='587'))
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', default='True', cast=lambda x: x.lower() in ('true', '1', 'yes'))
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='nhokkhanh83@gmail.com')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='abietvtwywahkedr')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='BookXe Rental <nhokkhanh83@gmail.com>')
 
 # ---------------------------------------------------------------------------
 # Thong tin tai khoan ngan hang de tao noi dung QR chuyen khoan
 # ---------------------------------------------------------------------------
-BOOKXE_BANK_NAME = 'Vietcombank'
-BOOKXE_BANK_ACCOUNT = '0123456789'
-BOOKXE_BANK_HOLDER = 'BOOKXE RENTAL MARKETPLACE'
+BOOKXE_BANK_NAME = config('BOOKXE_BANK_NAME', default='TPBank')
+BOOKXE_BANK_ACCOUNT = config('BOOKXE_BANK_ACCOUNT', default='00003771572')
+BOOKXE_BANK_HOLDER = config('BOOKXE_BANK_HOLDER', default='NGO DINH BAO KHANH')
 
 # Ti le dat coc mac dinh (30% tong tien thue)
 BOOKXE_DEPOSIT_RATE = 0.30

@@ -198,3 +198,90 @@ h1, h2, h3, h4, h5, h6 { color: var(--bx-ink); }
   .bx-detail-main-img { height: 280px !important; }
   .bx-thumb-col .d-flex { max-height: 90px; }
 }
+
+/* ---------- Contact Form - Nút Submit nổi bật ---------- */
+.contact-submit-btn {
+  width: 100%;
+  padding: 12px 24px !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  background-color: var(--bx-coral) !important;
+  color: #FFFFFF !important;
+  border: 2px solid var(--bx-coral) !important;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25) !important;
+  transition: all 0.2s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.contact-submit-btn:hover:not(:disabled) {
+  background-color: #DC2626 !important;
+  border-color: #DC2626 !important;
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.35) !important;
+  transform: translateY(-1px) !important;
+}
+.contact-submit-btn:disabled {
+  opacity: 0.6 !important;
+  transform: none !important;
+}
+.contact-submit-btn.btn-coral.disabled {
+  cursor: wait !important;
+}
+
+/* Icon in submit button */
+.contact-submit-btn i {
+  margin-right: 8px;
+  font-size: 18px;
+}
+
+/* Bootstrap class overrides for Emergency Issue button in shop_detail.html */
+.btn-coral {
+  background-color: var(--bx-coral) !important;
+  color: #FFFFFF !important;
+  border-color: var(--bx-coral) !important;
+  font-weight: 600 !important;
+  padding: 10px 20px !important;
+  border-radius: 8px !important;
+  width: 100% !important;
+}
+
+/* Contact form validation message styles */
+#contactMsg {
+  font-size: 14px;
+}
+
+/* Ensure text input in contact form has proper color on white background */
+#contactForm .form-control {
+  background-color: #FFFFFF;
+  color: #0F172A;
+  border: 1px solid #CBD5E1;
+}
+
+#contactForm .form-control:focus {
+  border-color: var(--bx-blue);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Contact form select styling */
+#contactForm select.form-select {
+  background-color: #FFFFFF;
+  color: #0F172A;
+}
+
+/* Submit button inside shop/vehicle detail pages */
+.bx-quick-contact-btn {
+  background: var(--bx-blue);
+  color: #FFFFFF;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  width: 100%;
+  margin-top: 8px;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+  transition: background 0.2s;
+}
+.bx-quick-contact-btn:hover { background: #1D4ED8; color: #FFFFFF; }
